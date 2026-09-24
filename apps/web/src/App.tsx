@@ -10,6 +10,7 @@ import { Diagnostics } from './components/Diagnostics'
 import { PaymentDialog } from './components/PaymentDialog'
 import { PaymentCenter } from './components/PaymentCenter'
 import { ModernizationProposal } from './components/ModernizationProposal'
+import { FieldDiscovery } from './components/FieldDiscovery'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
@@ -18,7 +19,7 @@ import { demoProducts } from './demo-catalog'
 
 const SALES_KEY = 'orbi-pos:pilot-sales'
 
-type AppView = 'sale' | 'prices' | 'products' | 'scale' | 'payments' | 'showcase' | 'proposal' | 'diagnostics'
+type AppView = 'sale' | 'prices' | 'products' | 'scale' | 'payments' | 'showcase' | 'discovery' | 'proposal' | 'diagnostics'
 
 function loadSales(): Sale[] {
   try {
@@ -294,6 +295,7 @@ function OperationalApp() {
           <button className={view === 'scale' ? 'active' : ''} onClick={() => setView('scale')}>Balanza</button>
           <button className={view === 'payments' ? 'active' : ''} onClick={() => setView('payments')}>Pagos</button>
           <button className={view === 'showcase' ? 'active' : ''} onClick={() => setView('showcase')}>Showcase</button>
+          <button className={view === 'discovery' ? 'active' : ''} onClick={() => setView('discovery')}>Levantamiento</button>
           <button className={view === 'proposal' ? 'active' : ''} onClick={() => setView('proposal')}>Propuesta</button>
           <button className={view === 'diagnostics' ? 'active' : ''} onClick={() => setView('diagnostics')}>Estado</button>
         </nav>
@@ -325,6 +327,7 @@ function OperationalApp() {
       {view === 'products' ? <ProductAdmin categories={categories} products={products} onChange={(nextProducts) => { void sync.publish(nextProducts) }} /> : null}
       {view === 'scale' ? <ScaleMapping products={products} onChange={(nextProducts) => { void sync.publish(nextProducts) }} /> : null}
       {view === 'payments' ? <PaymentCenter /> : null}
+      {view === 'discovery' ? <FieldDiscovery /> : null}
       {view === 'proposal' ? <ModernizationProposal /> : null}
       {view === 'diagnostics' ? (
         <Diagnostics
