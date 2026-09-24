@@ -226,7 +226,7 @@ function OperationalApp() {
   const [products, setProducts] = useState<Product[]>(loadCatalog)
   const [history, setHistory] = useState<PriceChange[]>(loadPriceHistory)
   const [sales, setSales] = useState<Sale[]>(loadSales)
-  const sync = useCatalogSync({ products, setProducts })
+  const sync = useCatalogSync({ products, setProducts, setPriceHistory: setHistory })
 
   useEffect(() => saveCatalog(products), [products])
   useEffect(() => savePriceHistory(history), [history])
