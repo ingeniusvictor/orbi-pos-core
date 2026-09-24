@@ -12,7 +12,7 @@ export interface RemoteCatalogSnapshot {
 const API_BASE = (import.meta.env.VITE_ORBI_SYNC_URL ?? '').replace(/\/$/, '')
 export const ORBI_STORE_ID = import.meta.env.VITE_ORBI_STORE_ID ?? 'el-chunchito'
 
-function api(path: string) {
+export function orbiApi(path: string) {
   return `${API_BASE}${path}`
 }
 
@@ -24,7 +24,7 @@ export class RemoteCatalogConflict extends Error {
 
 export async function detectCatalogSync(signal?: AbortSignal): Promise<boolean> {
   try {
-    const response = await fetch(api('/api/health'), { signal, cache: 'no-store' })
+    const response = await fetch(orbiApi('/api/health'), { signal, cache: 'no-store' })
     if (!response.ok) return false
     const body = await response.json() as { service?: string }
     return body.service === 'orbi-pos-sync'
@@ -37,7 +37,7 @@ export async function fetchRemoteCatalog(
   storeId = ORBI_STORE_ID,
   signal?: AbortSignal,
 ): Promise<RemoteCatalogSnapshot | null> {
-  const response = await fetch(api(`/api/stores/${encodeURIComponent(storeId)}/catalog`), {
+  const response = await fetch(orbiApi(`/api/stores/${encodeURIComponent(storeId)}/catalog`), {
     signal,
     cache: 'no-store',
   })
@@ -52,7 +52,7 @@ export async function publishRemoteCatalog(
   baseRevision: number,
   storeId = ORBI_STORE_ID,
 ): Promise<RemoteCatalogSnapshot> {
-  const response = await fetch(api(`/api/stores/${encodeURIComponent(storeId)}/catalog`), {
+  const response = await fetch(orbiApi(`/api/stores/${encodeURIComponent(storeId)}/catalog`), {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ products, baseRevision }),

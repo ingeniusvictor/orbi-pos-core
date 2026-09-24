@@ -9,6 +9,7 @@ import { ScaleMapping } from './components/ScaleMapping'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
+import { resolveProductImageUrl } from './asset-api'
 
 const SALES_KEY = 'orbi-pos:pilot-sales'
 
@@ -57,7 +58,7 @@ function ProductDialog({
       <section className="product-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Cerrar">×</button>
         <div className="product-hero">
-          {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <span>🥩</span>}
+          {product.imageUrl ? <img src={resolveProductImageUrl(product.imageUrl)} alt={product.name} /> : <span>🥩</span>}
         </div>
         <p className="eyebrow">COD {product.code} · Agregar a la venta</p>
         <h2>{product.name}</h2>
@@ -155,7 +156,7 @@ function SaleView({ products, sales, setSales }: {
               {visibleProducts.map((product) => (
                 <button className="product-card" key={product.id} onClick={() => setSelectedProduct(product)}>
                   <div className="product-image">
-                    {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <span>🥩</span>}
+                    {product.imageUrl ? <img src={resolveProductImageUrl(product.imageUrl)} alt={product.name} /> : <span>🥩</span>}
                     <b>COD {product.code}</b>
                   </div>
                   <div className="product-copy">
