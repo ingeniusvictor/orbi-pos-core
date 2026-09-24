@@ -1,7 +1,11 @@
 import type { CartLine, PaymentMethod, Product, Sale } from './domain'
 
+/**
+ * The DIGI RM-60 pilot receipt rounds line totals to the nearest CLP 10.
+ * Example: 1.146 kg × CLP 4,898/kg = CLP 5,613.108 -> CLP 5,610.
+ */
 export function roundMoney(value: number): number {
-  return Math.round(value)
+  return Math.round(value / 10) * 10
 }
 
 export function lineSubtotal(product: Product, quantity: number): number {
