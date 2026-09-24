@@ -14,6 +14,7 @@ const DATA_DIR = process.env.ORBI_POS_DATA_DIR
 const store = new CatalogStore(DATA_DIR)
 const assetStore = new AssetStore(DATA_DIR)
 const app = express()
+const startedAt = new Date().toISOString()
 
 app.use(express.json({ limit: '4mb' }))
 
@@ -22,6 +23,8 @@ app.get('/api/health', (_req, res) => {
     ok: true,
     service: 'orbi-pos-sync',
     mode: 'lan-pilot',
+    startedAt,
+    uptimeSeconds: Math.floor(process.uptime()),
     capabilities: {
       sharedCatalog: true,
       sharedImages: true,
