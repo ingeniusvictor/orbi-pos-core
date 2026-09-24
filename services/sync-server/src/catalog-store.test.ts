@@ -36,6 +36,7 @@ describe('CatalogStore', () => {
 
     expect(snapshot.revision).toBe(1)
     expect(snapshot.products[0].price).toBe(4898)
+    expect(snapshot.priceHistory).toEqual([])
     expect(await store.get('el-chunchito')).toEqual(snapshot)
   })
 
@@ -46,6 +47,43 @@ describe('CatalogStore', () => {
     const snapshot = await store.put('el-chunchito', [{ ...pernil, price: 5190 }], 1)
     expect(snapshot.revision).toBe(2)
     expect(snapshot.products[0].price).toBe(5190)
+    expect(snapshot.priceHistory).toEqual([
+      expect.objectContaining({
+        productId: 'pernil',
+        productName: 'Pernil',
+        previousPrice: 4898,
+        nextPrice: 5190,
+        changedAt: '2026-09-24T18:30:00.000Z',
+      }),
+    ])
+    expect(snapshot.products[0].priceUpdatedAt).toBe('2026-09-24T18:30:00.000Z')
+  })
+
+  it('does not create audit entries for metadata-only catalog changes', async () => {
+    const store = await makeStore()
+    await store.put('el-chunchito', [pernil], 0)
+
+    const snapshot = await store.put('el-chunchito', [{ ...pernil, promoText: 'Destacado' }], 1)
+    expect(snapshot.priceHistory).toEqual([])
+  })
+
+  it('records rollback as a new append-only shared price entry', async () => {
+    const store = await makeStore()
+    await store.put('el-chunchito', [pernil], 0)
+    const changed = await store.put('el-chunchito', [{ ...pernil, price: 5190 }], 1)
+    const rolledBack = await store.put('el-chunchito', [{ ...changed.products[0], price: 4898 }], 2)
+
+    expect(rolledBack.priceHistory).toHaveLength(2)
+    expect(rolledBack.priceHistory[0]).toMatchObject({
+      productId: 'pernil',
+      previousPrice: 5190,
+      nextPrice: 4898,
+    })
+    expect(rolledBack.priceHistory[1]).toMatchObject({
+      productId: 'pernil',
+      previousPrice: 4898,
+      nextPrice: 5190,
+    })
   })
 
   it('rejects stale writes and returns the current snapshot', async () => {
