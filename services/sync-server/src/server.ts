@@ -4,6 +4,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CatalogConflictError, CatalogStore } from './catalog-store.js'
 import { AssetStore } from './asset-store.js'
+import { PaymentStore } from './payment-store.js'
+import { createPaymentRuntime } from './payment-providers.js'
+import { PaymentService } from './payment-service.js'
+import type { PaymentOrderStatus } from './payment-types.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -13,6 +17,8 @@ const DATA_DIR = process.env.ORBI_POS_DATA_DIR
 
 const store = new CatalogStore(DATA_DIR)
 const assetStore = new AssetStore(DATA_DIR)
+const paymentRuntime = createPaymentRuntime(process.env)
+const paymentService = new PaymentService(new PaymentStore(DATA_DIR), paymentRuntime)
 const app = express()
 const startedAt = new Date().toISOString()
 
@@ -28,6 +34,8 @@ app.get('/api/health', (_req, res) => {
     capabilities: {
       sharedCatalog: true,
       sharedImages: true,
+      payments: true,
+      paymentProvider: paymentRuntime.providerId,
     },
   })
 })
@@ -77,6 +85,67 @@ app.put(
     }
   },
 )
+
+app.get('/api/stores/:storeId/payments/runtime', (req, res) => {
+  return res.json({
+    provider: paymentService.providerId(),
+    terminal: paymentService.terminal(),
+    storeId: req.params.storeId,
+  })
+})
+
+app.get('/api/stores/:storeId/payments/orders', async (req, res) => {
+  try {
+    const limit = Number(req.query.limit ?? 100)
+    return res.json(await paymentService.list(req.params.storeId))
+  } catch (error) {
+    return res.status(400).json({ code: 'PAYMENT_LIST_FAILED', message: (error as Error).message })
+  }
+})
+
+app.post('/api/stores/:storeId/payments/orders', async (req, res) => {
+  try {
+    const order = await paymentService.create(req.params.storeId, {
+      clientRequestId: req.body?.clientRequestId,
+      amount: req.body?.amount,
+      requestedMethod: req.body?.requestedMethod,
+    })
+    return res.status(201).json(order)
+  } catch (error) {
+    return res.status(400).json({ code: 'PAYMENT_CREATE_FAILED', message: (error as Error).message })
+  }
+})
+
+app.get('/api/stores/:storeId/payments/orders/:orderId', async (req, res) => {
+  try {
+    const order = await paymentService.get(req.params.storeId, req.params.orderId)
+    if (!order) return res.status(404).json({ code: 'PAYMENT_ORDER_NOT_FOUND' })
+    return res.json(order)
+  } catch (error) {
+    return res.status(400).json({ code: 'PAYMENT_REFRESH_FAILED', message: (error as Error).message })
+  }
+})
+
+app.post('/api/stores/:storeId/payments/orders/:orderId/cancel', async (req, res) => {
+  try {
+    return res.json(await paymentService.cancel(req.params.storeId, req.params.orderId))
+  } catch (error) {
+    return res.status(409).json({ code: 'PAYMENT_CANCEL_FAILED', message: (error as Error).message })
+  }
+})
+
+app.post('/api/stores/:storeId/payments/orders/:orderId/mock-status', async (req, res) => {
+  try {
+    const status = req.body?.status as PaymentOrderStatus
+    return res.json(await paymentService.mockTransition(
+      req.params.storeId,
+      req.params.orderId,
+      status,
+    ))
+  } catch (error) {
+    return res.status(400).json({ code: 'MOCK_PAYMENT_TRANSITION_FAILED', message: (error as Error).message })
+  }
+})
 
 app.get('/api/stores/:storeId/catalog', async (req, res) => {
   try {
