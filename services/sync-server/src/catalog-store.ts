@@ -19,11 +19,21 @@ export interface ProductPayload {
   verifiedPilotData?: boolean
 }
 
+export interface PriceChangePayload {
+  id: string
+  productId: string
+  productName: string
+  previousPrice: number
+  nextPrice: number
+  changedAt: string
+}
+
 export interface CatalogSnapshot {
   storeId: string
   revision: number
   updatedAt: string
   products: ProductPayload[]
+  priceHistory: PriceChangePayload[]
 }
 
 export class CatalogConflictError extends Error {
@@ -82,6 +92,31 @@ function validateProducts(products: unknown): asserts products is ProductPayload
   }
 }
 
+function buildPriceChanges(
+  current: CatalogSnapshot | null,
+  nextProducts: ProductPayload[],
+  changedAt: string,
+  revision: number,
+): PriceChangePayload[] {
+  if (!current) return []
+
+  const previousById = new Map(current.products.map((product) => [product.id, product]))
+
+  return nextProducts.flatMap((product) => {
+    const previous = previousById.get(product.id)
+    if (!previous || previous.price === product.price) return []
+
+    return [{
+      id: `${product.id}-r${revision}-${changedAt}-${product.price}`,
+      productId: product.id,
+      productName: product.name,
+      previousPrice: previous.price,
+      nextPrice: product.price,
+      changedAt,
+    }]
+  })
+}
+
 export class CatalogStore {
   constructor(
     private readonly dataDir: string,
@@ -97,7 +132,14 @@ export class CatalogStore {
     const file = this.filePath(storeId)
     try {
       const raw = await readFile(file, 'utf8')
-      return JSON.parse(raw) as CatalogSnapshot
+      const parsed = JSON.parse(raw) as Omit<CatalogSnapshot, 'priceHistory'> & {
+        priceHistory?: PriceChangePayload[]
+      }
+
+      return {
+        ...parsed,
+        priceHistory: Array.isArray(parsed.priceHistory) ? parsed.priceHistory : [],
+      }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
       throw error
@@ -120,11 +162,26 @@ export class CatalogStore {
       throw new Error('Cannot initialize catalog from a non-zero revision')
     }
 
+    const revision = currentRevision + 1
+    const updatedAt = this.now()
+    const priceChanges = buildPriceChanges(current, productsInput, updatedAt, revision)
+    const changedIds = new Set(priceChanges.map((change) => change.productId))
+
+    const products = productsInput.map((product) =>
+      changedIds.has(product.id)
+        ? { ...product, priceUpdatedAt: updatedAt }
+        : product,
+    )
+
     const snapshot: CatalogSnapshot = {
       storeId,
-      revision: currentRevision + 1,
-      updatedAt: this.now(),
-      products: productsInput,
+      revision,
+      updatedAt,
+      products,
+      priceHistory: [
+        ...priceChanges,
+        ...(current?.priceHistory ?? []),
+      ].slice(0, 1000),
     }
 
     const file = this.filePath(storeId)

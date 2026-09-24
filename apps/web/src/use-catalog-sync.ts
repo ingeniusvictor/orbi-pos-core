@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import type { Product } from './domain'
+import type { PriceChange, Product } from './domain'
 import {
   detectCatalogSync,
   fetchRemoteCatalog,
@@ -12,10 +12,16 @@ import {
 interface Options {
   products: Product[]
   setProducts: Dispatch<SetStateAction<Product[]>>
+  setPriceHistory?: Dispatch<SetStateAction<PriceChange[]>>
   pollMs?: number
 }
 
-export function useCatalogSync({ products, setProducts, pollMs = 3000 }: Options) {
+export function useCatalogSync({
+  products,
+  setProducts,
+  setPriceHistory,
+  pollMs = 3000,
+}: Options) {
   const [status, setStatus] = useState<CatalogSyncStatus>('connecting')
   const [revision, setRevision] = useState(0)
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null)
@@ -34,6 +40,7 @@ export function useCatalogSync({ products, setProducts, pollMs = 3000 }: Options
     revision: number
     updatedAt: string
     products: Product[]
+    priceHistory?: PriceChange[]
   }) => {
     revisionRef.current = snapshot.revision
     setRevision(snapshot.revision)
@@ -41,7 +48,10 @@ export function useCatalogSync({ products, setProducts, pollMs = 3000 }: Options
     productsRef.current = snapshot.products
     pendingRef.current = null
     setProducts(snapshot.products)
-  }, [setProducts])
+    if (setPriceHistory && Array.isArray(snapshot.priceHistory)) {
+      setPriceHistory(snapshot.priceHistory)
+    }
+  }, [setPriceHistory, setProducts])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -125,10 +135,7 @@ export function useCatalogSync({ products, setProducts, pollMs = 3000 }: Options
     setStatus('syncing')
     try {
       const remote = await publishRemoteCatalog(nextProducts, revisionRef.current, ORBI_STORE_ID)
-      pendingRef.current = null
-      revisionRef.current = remote.revision
-      setRevision(remote.revision)
-      setLastUpdatedAt(remote.updatedAt)
+      acceptRemote(remote)
       setStatus('synced')
     } catch (error) {
       if (error instanceof RemoteCatalogConflict) {

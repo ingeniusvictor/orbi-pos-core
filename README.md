@@ -12,7 +12,7 @@ The current working slice includes:
 - master product catalog with safe metadata editing and search;
 - validated unique customer-facing product codes;
 - optional DIGI RM-60 PLU mapping field;
-- fast price editing, append-only price history and guarded one-step rollback;
+- fast price editing, shared append-only price audit and guarded one-step rollback;
 - full-screen `/showcase` TV surface;
 - isolated `/showcase-demo` presentation route with permanently marked illustrative data;
 - rotating Showcase hero/product-board presentation engine;
@@ -111,7 +111,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-11 Safe Visual Demo Mode
+**Milestone:** OC-12 Shared Price Audit
 
 
 ## TV pilot on Windows

@@ -1,4 +1,4 @@
-import type { Product } from './domain'
+import type { PriceChange, Product } from './domain'
 
 export type CatalogSyncStatus = 'connecting' | 'local' | 'synced' | 'syncing' | 'offline' | 'conflict'
 
@@ -7,6 +7,7 @@ export interface RemoteCatalogSnapshot {
   revision: number
   updatedAt: string
   products: Product[]
+  priceHistory: PriceChange[]
 }
 
 export interface OrbiSystemHealth {
