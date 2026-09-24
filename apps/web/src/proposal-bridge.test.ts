@@ -131,6 +131,39 @@ describe('Discovery → Proposal bridge', () => {
     expect(second.preservedManualFields).toContain('Fuente / respaldo actual')
   })
 
+  it('preserves an intentional manual clear after a prior discovery import', () => {
+    const first = bridgeDiscoveryToProposal(
+      emptyModernizationInputs,
+      discoveryCommercial({
+        fixedMonthlyCost: 100000,
+        cardFeePercent: 2.5,
+        monthlyCardSales: 5000000,
+      }),
+      emptyProposalBridgeSnapshot,
+      '2026-09-24T22:00:00.000Z',
+    )
+
+    const cleared = {
+      ...first.inputs,
+      currentFixedMonthly: null,
+    }
+
+    const second = bridgeDiscoveryToProposal(
+      cleared,
+      discoveryCommercial({
+        fixedMonthlyCost: 110000,
+        cardFeePercent: 2.3,
+        monthlyCardSales: 5200000,
+      }),
+      first.snapshot,
+      '2026-09-24T22:05:00.000Z',
+    )
+
+    expect(second.inputs.currentFixedMonthly).toBeNull()
+    expect(second.preservedManualFields).toContain('Costo fijo mensual actual')
+    expect(second.status).toBe('manual-overrides')
+  })
+
   it('builds a readable evidence note without sensitive-data fields', () => {
     const note = discoverySourceNote(discoveryCommercial({
       sunmiArrangement: 'rented',
