@@ -559,3 +559,30 @@ button { cursor: pointer; }
   .showcase-preview .showcase-grid { grid-template-columns: repeat(2, 1fr); }
   .showcase-preview .showcase-footer { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* ── OC-03 shared catalog sync status ─────────────────────────────── */
+.status.sync-connecting,
+.status.sync-syncing {
+  border-color: #d9d4bd;
+  background: #fff9dc;
+  color: #6d5d20;
+}
+.status.sync-connecting i,
+.status.sync-syncing i { background: #c79a20; }
+
+.status.sync-offline,
+.status.sync-conflict {
+  border-color: #eed0cb;
+  background: #fff0ed;
+  color: #8b2f27;
+}
+.status.sync-offline i,
+.status.sync-conflict i { background: #c4493d; }
+
+.status.sync-synced {
+  border-color: #d9e5d5;
+  background: #f3faef;
+  color: #315428;
+}
+.status.sync-synced i { background: #4a8a37; }
