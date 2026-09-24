@@ -24,6 +24,10 @@ The current working slice includes:
 - local cache/fallback when the sync server is unavailable;
 - weight entry and RM-60-compatible CLP 10 subtotal rounding;
 - cart, payment-method selection and local completed-sale persistence;
+- backend Payment Core with mock Point Smart 2 simulator;
+- dormant Mercado Pago Point Orders adapter with backend-only credentials;
+- terminal/provider registry and payment operations center;
+- card checkout state machine that only closes sales after payment status `processed`;
 - simple daily sales summary.
 
 Only the two prices verified from the supplied El Chunchito RM-60 receipt are preloaded.
@@ -111,7 +115,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-12 Shared Price Audit
+**Milestone:** OC-13/OC-14/OC-15 Payment Core + Point Readiness
 
 
 ## TV pilot on Windows
@@ -134,3 +138,28 @@ http://HOST:8787/showcase-demo
 ~~~
 
 That route uses isolated illustrative products/prices and is permanently marked as DEMO. It never publishes those examples into the real master catalog.
+
+
+## Point / Mercado Pago readiness
+
+Development defaults to a no-money simulator:
+
+~~~text
+ORBI_PAYMENT_PROVIDER=mock
+~~~
+
+The simulated Point flow lets ORBI demonstrate create -> terminal -> approved/failed without a physical terminal.
+
+The real Mercado Pago adapter is server-side only and remains inactive until the business has a real application credential and Point terminal:
+
+~~~text
+ORBI_PAYMENT_PROVIDER=mercadopago
+MERCADO_PAGO_ACCESS_TOKEN=<server secret>
+ORBI_POINT_TERMINAL_ID=<real terminal id>
+ORBI_POINT_STORE_ID=<real store id>
+ORBI_POINT_POS_ID=<real POS/cashbox id>
+~~~
+
+Never expose the Mercado Pago Access Token through Vite/browser environment variables.
+
+A real card sale is not persisted as paid until the provider order reaches `processed`.
