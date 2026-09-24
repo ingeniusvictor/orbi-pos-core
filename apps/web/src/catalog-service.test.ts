@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { applyPricePatches, validatePrice } from './catalog-service'
+import {
+  applyPricePatches,
+  normalizeProductCode,
+  validatePrice,
+  validateProductCode,
+  validateProductDraft,
+} from './catalog-service'
 import type { Product } from './domain'
 
 const product: Product = {
@@ -9,6 +15,7 @@ const product: Product = {
   name: 'Pernil',
   price: 4898,
   unitType: 'KG',
+  plu: '0047',
   active: true,
   showOnShowcase: true,
   featured: true,
@@ -40,5 +47,51 @@ describe('master catalog pricing', () => {
     expect(validatePrice(0)).toBe(false)
     expect(validatePrice(4990.5)).toBe(false)
     expect(validatePrice(4990)).toBe(true)
+  })
+})
+
+describe('master catalog identity integrity', () => {
+  it('normalizes short customer codes', () => {
+    expect(normalizeProductCode('  a-12 ')).toBe('A-12')
+    expect(validateProductCode('A-12')).toBe(true)
+    expect(validateProductCode('código largo con espacios')).toBe(false)
+  })
+
+  it('rejects duplicate customer codes', () => {
+    const errors = validateProductDraft([product], {
+      code: '101',
+      name: 'Otro corte',
+      categoryId: 'pork',
+      price: 5000,
+      unitType: 'KG',
+    })
+
+    expect(errors.some((error) => error.includes('código 101'))).toBe(true)
+  })
+
+  it('rejects duplicate PLUs', () => {
+    const errors = validateProductDraft([product], {
+      code: '102',
+      name: 'Otro corte',
+      categoryId: 'pork',
+      price: 5000,
+      unitType: 'KG',
+      plu: '0047',
+    })
+
+    expect(errors.some((error) => error.includes('PLU 0047'))).toBe(true)
+  })
+
+  it('allows editing a product without conflicting with itself', () => {
+    const errors = validateProductDraft([product], {
+      code: '101',
+      name: 'Pernil de cerdo',
+      categoryId: 'pork',
+      price: 4898,
+      unitType: 'KG',
+      plu: '0047',
+    }, 'pernil')
+
+    expect(errors).toEqual([])
   })
 })
