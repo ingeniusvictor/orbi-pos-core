@@ -14,6 +14,9 @@ The current working slice includes:
 - optional DIGI RM-60 PLU mapping field;
 - fast price editing and price history;
 - full-screen `/showcase` TV surface;
+- rotating Showcase hero/product-board presentation engine;
+- Showcase content controls for TV visibility, featured products, order, promo text and image URL;
+- safe catalog CSV import/export with preview;
 - shared LAN catalog synchronization for a separate TV/browser;
 - local cache/fallback when the sync server is unavailable;
 - weight entry and RM-60-compatible CLP 10 subtotal rounding;
@@ -105,4 +108,4 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-03 Shared Catalog Sync
+**Milestone:** OC-05/OC-06 Showcase Content Engine + Catalog CSV

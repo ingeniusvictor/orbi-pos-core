@@ -16,6 +16,7 @@ export interface Product {
   unitType: UnitType
   plu?: string
   imageUrl?: string
+  promoText?: string
   active: boolean
   showOnShowcase: boolean
   featured: boolean

@@ -10,6 +10,7 @@ export interface ProductPayload {
   unitType: 'KG' | 'UNIT' | 'PACK'
   plu?: string
   imageUrl?: string
+  promoText?: string
   active: boolean
   showOnShowcase: boolean
   featured: boolean

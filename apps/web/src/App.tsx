@@ -4,6 +4,7 @@ import { loadCatalog, loadPriceHistory, saveCatalog, savePriceHistory } from './
 import { PriceBoard } from './components/PriceBoard'
 import { ProductAdmin } from './components/ProductAdmin'
 import { Showcase } from './components/Showcase'
+import { ShowcaseManager } from './components/ShowcaseManager'
 import { ScaleMapping } from './components/ScaleMapping'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
@@ -279,6 +280,7 @@ export function App() {
             <div><p className="eyebrow">Pantalla cliente</p><h2>ORBI Showcase</h2><p>Esta vista usa exactamente los mismos precios del catálogo maestro.</p></div>
             <button className="primary" onClick={() => window.open('/showcase', '_blank', 'noopener,noreferrer')}>Abrir pantalla completa ↗</button>
           </div>
+          <ShowcaseManager products={products} onCommit={(nextProducts) => { void sync.publish(nextProducts) }} />
           <Showcase products={products} preview />
         </section>
       ) : null}
