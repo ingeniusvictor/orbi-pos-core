@@ -3,8 +3,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { PaymentService } from './payment-service.js'
-import { createPaymentRuntime } from './payment-providers.js'
+import { createPaymentRuntime, type PaymentRuntimeConfig } from './payment-providers.js'
 import { PaymentStore } from './payment-store.js'
+import type { PaymentProvider } from './payment-types.js'
 
 const dirs: string[] = []
 
@@ -73,6 +74,82 @@ describe('PaymentService', () => {
     await expect(
       service.mockTransition('el-chunchito', created.id, 'failed'),
     ).rejects.toThrow('Invalid mock transition')
+  })
+
+  it('stops automatic processing on action_required and keeps the sale unapproved', async () => {
+    const service = await makeService()
+    const created = await service.create('el-chunchito', {
+      clientRequestId: 'request-action-required',
+      amount: 15720,
+      requestedMethod: 'debit',
+    })
+
+    await service.mockTransition('el-chunchito', created.id, 'at_terminal')
+    const attention = await service.mockTransition(
+      'el-chunchito',
+      created.id,
+      'action_required',
+    )
+
+    expect(attention.status).toBe('action_required')
+    await expect(
+      service.mockTransition('el-chunchito', created.id, 'processed'),
+    ).rejects.toThrow('Invalid mock transition')
+  })
+
+  it('reconciles a webhook/provider order id by querying the authoritative provider', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'orbi-pos-payments-'))
+    dirs.push(dir)
+
+    const provider: PaymentProvider = {
+      id: 'mercadopago',
+      async createOrder() {
+        return { providerOrderId: 'ORD01RECONCILE', status: 'created' }
+      },
+      async getOrder() {
+        return {
+          providerOrderId: 'ORD01RECONCILE',
+          status: 'processed',
+          statusDetail: 'processed',
+        }
+      },
+      async cancelOrder() {
+        return { providerOrderId: 'ORD01RECONCILE', status: 'canceled' }
+      },
+    }
+
+    const runtime: PaymentRuntimeConfig = {
+      providerId: 'mercadopago',
+      provider,
+      terminal: {
+        id: 'POINT-REAL',
+        provider: 'mercadopago',
+        label: 'Point Smart 2',
+        operatingMode: 'PDV',
+        ready: true,
+        isPrimary: true,
+      },
+    }
+
+    const service = new PaymentService(
+      new PaymentStore(dir),
+      runtime,
+      () => new Date('2026-09-24T20:10:00.000Z'),
+    )
+
+    await service.create('el-chunchito', {
+      clientRequestId: 'request-reconcile',
+      amount: 15720,
+      requestedMethod: 'debit',
+    })
+
+    const reconciled = await service.reconcileProviderOrder(
+      'el-chunchito',
+      'ord01reconcile',
+    )
+
+    expect(reconciled.status).toBe('processed')
+    expect(reconciled.providerOrderId).toBe('ORD01RECONCILE')
   })
 
   it('keeps a failed order final and available for audit', async () => {
