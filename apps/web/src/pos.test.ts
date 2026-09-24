@@ -10,15 +10,27 @@ const pernil: Product = {
   unitType: 'KG',
 }
 
+const orejasCorazon: Product = {
+  id: 'orejas-corazon',
+  categoryId: 'pork',
+  name: 'Orejas y corazón',
+  price: 4800,
+  unitType: 'KG',
+}
+
 describe('ORBI POS calculations', () => {
-  it('reproduces the rounded RM-60 pernil example', () => {
-    expect(lineSubtotal(pernil, 1.146)).toBe(5613)
+  it('matches the RM-60 pernil receipt line', () => {
+    expect(lineSubtotal(pernil, 1.146)).toBe(5610)
   })
 
-  it('adds cart line subtotals', () => {
+  it('matches the RM-60 orejas y corazón receipt line', () => {
+    expect(lineSubtotal(orejasCorazon, 2.106)).toBe(10110)
+  })
+
+  it('matches the complete RM-60 receipt total', () => {
     expect(cartTotal([
-      { id: '1', productId: 'a', name: 'A', unitPrice: 1000, quantity: 1, unitType: 'KG', subtotal: 1000 },
-      { id: '2', productId: 'b', name: 'B', unitPrice: 2000, quantity: 1, unitType: 'KG', subtotal: 2000 },
-    ])).toBe(3000)
+      { id: '1', productId: pernil.id, name: pernil.name, unitPrice: pernil.price, quantity: 1.146, unitType: 'KG', subtotal: lineSubtotal(pernil, 1.146) },
+      { id: '2', productId: orejasCorazon.id, name: orejasCorazon.name, unitPrice: orejasCorazon.price, quantity: 2.106, unitType: 'KG', subtotal: lineSubtotal(orejasCorazon, 2.106) },
+    ])).toBe(15720)
   })
 })
