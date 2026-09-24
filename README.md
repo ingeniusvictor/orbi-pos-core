@@ -34,6 +34,8 @@ The current working slice includes:
 - structured field discovery for SUNMI/Inputsoft/SII, current costs and the four RM-60 scales;
 - dynamic question pack for Diana plus sanitized discovery JSON export;
 - Discovery → Proposal bridge that reuses verified current costs/fees without overwriting manual corrections;
+- owner-facing `/piloto` demo hub with guided navigation and separate software-vs-field readiness;
+- direct `?view=` links for opening specific admin workspaces;
 - simple daily sales summary.
 
 Only the two prices verified from the supplied El Chunchito RM-60 receipt are preloaded.
@@ -121,7 +123,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-20 Discovery → Proposal Bridge
+**Milestone:** OC-21 Owner Demo Hub & Pilot Readiness
 
 
 ## TV pilot on Windows
@@ -218,3 +220,26 @@ The **Propuesta** screen automatically reads the current commercial baseline fro
 Current fixed cost, effective card fee and monthly card sales can flow into the owner comparison without being entered twice. A field imported from discovery may continue to refresh while it still equals the previous imported value; manual proposal changes are preserved on later refreshes.
 
 Proposed Point/ORBI costs remain independent assumptions and are never filled from the current-business discovery record.
+
+
+## Owner pilot hub
+
+For an owner-facing walkthrough, open:
+
+~~~text
+http://HOST:8787/piloto
+~~~
+
+The hub tells the ORBI story in five steps: Showcase, POS, four RM-60 scales, Point payments and the modernization proposal.
+
+It deliberately separates **software that is ready to demonstrate** from **field/production validation that is still pending**. It does not imply that SUNMI/Inputsoft can already be removed or that real RM-60/Point integrations are complete.
+
+Specific admin workspaces can also be linked directly with:
+
+~~~text
+/?view=sale
+/?view=scale
+/?view=payments
+/?view=discovery
+/?view=proposal
+~~~

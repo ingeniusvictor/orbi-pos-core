@@ -11,6 +11,7 @@ import { PaymentDialog } from './components/PaymentDialog'
 import { PaymentCenter } from './components/PaymentCenter'
 import { ModernizationProposal } from './components/ModernizationProposal'
 import { FieldDiscovery } from './components/FieldDiscovery'
+import { PilotDemoHub } from './components/PilotDemoHub'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
@@ -20,6 +21,15 @@ import { demoProducts } from './demo-catalog'
 const SALES_KEY = 'orbi-pos:pilot-sales'
 
 type AppView = 'sale' | 'prices' | 'products' | 'scale' | 'payments' | 'showcase' | 'discovery' | 'proposal' | 'diagnostics'
+
+const appViews: AppView[] = ['sale', 'prices', 'products', 'scale', 'payments', 'showcase', 'discovery', 'proposal', 'diagnostics']
+
+function initialAppView(): AppView {
+  const requested = new URLSearchParams(window.location.search).get('view')
+  return requested && appViews.includes(requested as AppView)
+    ? requested as AppView
+    : 'sale'
+}
 
 function loadSales(): Sale[] {
   try {
@@ -261,7 +271,7 @@ function SaleView({ products, sales, setSales }: {
 }
 
 function OperationalApp() {
-  const [view, setView] = useState<AppView>('sale')
+  const [view, setView] = useState<AppView>(initialAppView)
   const [products, setProducts] = useState<Product[]>(loadCatalog)
   const [history, setHistory] = useState<PriceChange[]>(loadPriceHistory)
   const [sales, setSales] = useState<Sale[]>(loadSales)
@@ -270,6 +280,12 @@ function OperationalApp() {
   useEffect(() => saveCatalog(products), [products])
   useEffect(() => savePriceHistory(history), [history])
   useEffect(() => saveSales(sales), [sales])
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('view', view)
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+  }, [view])
 
   if (window.location.pathname.replace(/\/$/, '').endsWith('/showcase')) {
     return (
@@ -297,6 +313,7 @@ function OperationalApp() {
           <button className={view === 'showcase' ? 'active' : ''} onClick={() => setView('showcase')}>Showcase</button>
           <button className={view === 'discovery' ? 'active' : ''} onClick={() => setView('discovery')}>Levantamiento</button>
           <button className={view === 'proposal' ? 'active' : ''} onClick={() => setView('proposal')}>Propuesta</button>
+          <button className="nav-pilot" onClick={() => window.open('/piloto', '_blank', 'noopener,noreferrer')}>Piloto ↗</button>
           <button className={view === 'diagnostics' ? 'active' : ''} onClick={() => setView('diagnostics')}>Estado</button>
         </nav>
         <span className={`status sync-${sync.status}`}><i /> {
@@ -376,6 +393,10 @@ export function App() {
 
   if (path.endsWith('/modernizacion')) {
     return <ModernizationProposal presentation />
+  }
+
+  if (path.endsWith('/piloto')) {
+    return <PilotDemoHub products={loadCatalog()} />
   }
 
   return <OperationalApp />
