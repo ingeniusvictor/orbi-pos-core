@@ -7,7 +7,8 @@ import { Showcase } from './components/Showcase'
 import { ShowcaseManager } from './components/ShowcaseManager'
 import { ScaleMapping } from './components/ScaleMapping'
 import { Diagnostics } from './components/Diagnostics'
-import type { CartLine, PaymentMethod, PriceChange, Product, Sale, UnitType } from './domain'
+import { PaymentDialog } from './components/PaymentDialog'
+import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
 import { resolveProductImageUrl } from './asset-api'
@@ -105,6 +106,7 @@ function SaleView({ products, sales, setSales }: {
   const [cart, setCart] = useState<CartLine[]>([])
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
   const [notice, setNotice] = useState('')
+  const [paymentOpen, setPaymentOpen] = useState(false)
 
   const visibleProducts = useMemo(
     () => products.filter((product) => product.active && (categoryId === 'all' || product.categoryId === categoryId)),
@@ -116,13 +118,24 @@ function SaleView({ products, sales, setSales }: {
   const todayTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0)
   const total = cartTotal(cart)
 
-  function checkout() {
-    if (!cart.length) return
-    const sale = completeSale(cart, paymentMethod)
+  function recordSale(payment?: SalePayment) {
+    const sale = completeSale(cart, paymentMethod, payment)
     setSales((current) => [sale, ...current])
     setCart([])
+    setPaymentOpen(false)
     setNotice(`Venta registrada · ${formatCLP(sale.total)} · ${paymentLabel(paymentMethod)}`)
     window.setTimeout(() => setNotice(''), 3200)
+  }
+
+  function checkout() {
+    if (!cart.length) return
+
+    if (paymentMethod === 'debit' || paymentMethod === 'credit') {
+      setPaymentOpen(true)
+      return
+    }
+
+    recordSale()
   }
 
   return (
@@ -204,7 +217,14 @@ function SaleView({ products, sales, setSales }: {
                 </button>
               ))}
             </div>
-            <button className="primary checkout-button" onClick={checkout} disabled={!cart.length}>Cobrar {cart.length ? formatCLP(total) : ''}</button>
+            <button className="primary checkout-button" onClick={checkout} disabled={!cart.length}>
+              {paymentMethod === 'debit' || paymentMethod === 'credit'
+                ? `Cobrar con Point ${cart.length ? formatCLP(total) : ''}`
+                : `Registrar cobro ${cart.length ? formatCLP(total) : ''}`}
+            </button>
+            {paymentMethod === 'debit' || paymentMethod === 'credit' ? (
+              <small className="point-checkout-note">La venta se cerrará solo cuando Point confirme el pago.</small>
+            ) : null}
           </div>
         </aside>
       </main>
@@ -214,6 +234,22 @@ function SaleView({ products, sales, setSales }: {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onAdd={(product, quantity) => setCart((current) => [...current, makeCartLine(product, quantity)])}
+        />
+      ) : null}
+      {paymentOpen && (paymentMethod === 'debit' || paymentMethod === 'credit') ? (
+        <PaymentDialog
+          amount={total}
+          method={paymentMethod}
+          onClose={() => setPaymentOpen(false)}
+          onApproved={(order) => {
+            recordSale({
+              provider: order.provider,
+              orderId: order.id,
+              providerOrderId: order.providerOrderId,
+              externalReference: order.externalReference,
+              terminalId: order.terminalId,
+            })
+          }}
         />
       ) : null}
       {notice ? <div className="toast">{notice}</div> : null}
