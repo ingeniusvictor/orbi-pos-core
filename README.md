@@ -31,6 +31,8 @@ The current working slice includes:
 - `action_required` safety state requiring terminal review;
 - card checkout state machine that only closes sales after payment status `processed`;
 - owner-facing modernization proposal with evidence-aware cost-benefit calculator;
+- structured field discovery for SUNMI/Inputsoft/SII, current costs and the four RM-60 scales;
+- dynamic question pack for Diana plus sanitized discovery JSON export;
 - simple daily sales summary.
 
 Only the two prices verified from the supplied El Chunchito RM-60 receipt are preloaded.
@@ -118,7 +120,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-18 Owner Modernization Proposal
+**Milestone:** OC-19 Field Discovery & Incident Intake
 
 
 ## TV pilot on Windows
@@ -197,3 +199,12 @@ http://HOST:8787/modernizacion
 The comparison separates confirmed shop facts, pending discovery and the target ORBI + Point architecture.
 
 The cost-benefit calculator starts with blank business inputs. It does not claim savings until real current costs, card volume/fees and a current proposal quotation are entered. Draft assumptions are stored only in the local browser.
+
+
+## Field discovery
+
+The admin interface includes **Levantamiento** for capturing operational facts before any fiscal or RM-60 write integration.
+
+It tracks the SUNMI/Inputsoft/SII incident, current commercial/payment baseline, and the four-scale RM-60 workflow. Unknown answers remain explicitly pending, and the screen generates a short question pack for Diana.
+
+The module intentionally has no fields for passwords, API keys, card data or customer personal information.
