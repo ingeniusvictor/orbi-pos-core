@@ -11,7 +11,7 @@ The current working slice includes:
 - visual product categories;
 - master product catalog with safe metadata editing and search;
 - validated unique customer-facing product codes;
-- optional DIGI RM-60 PLU mapping field;
+- four-device DIGI RM-60 fleet registry plus product PLU mapping;
 - fast price editing, shared append-only price audit and guarded one-step rollback;
 - full-screen `/showcase` TV surface;
 - isolated `/showcase-demo` presentation route with permanently marked illustrative data;
@@ -115,7 +115,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-13/OC-14/OC-15 Payment Core + Point Readiness
+**Milestone:** OC-17 Four DIGI RM-60 Fleet Registry
 
 
 ## TV pilot on Windows
@@ -163,3 +163,12 @@ ORBI_POINT_POS_ID=<real POS/cashbox id>
 Never expose the Mercado Pago Access Token through Vite/browser environment variables.
 
 A real card sale is not persisted as paid until the provider order reaches `processed`.
+
+
+## RM-60 fleet discovery
+
+The current shop topology is represented as four DIGI RM-60 units. RM60-01 is marked as the staff-described principal scale and as the current price-administration source.
+
+The relationship between the four devices remains explicitly **unverified** until field observation confirms whether RM60-01 distributes catalog/price changes or whether the scales maintain independent data.
+
+No ORBI command is sent to the scales by OC-17.
