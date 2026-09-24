@@ -1758,3 +1758,83 @@ button { cursor: pointer; }
     grid-column: 1;
   }
 }
+
+
+/* ── OC-10 price-change safety & rollback ─────────────────────────── */
+.price-rollback-card {
+  display: grid;
+  grid-template-columns: minmax(240px, .8fr) minmax(320px, 1.4fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border: 1px solid #e3d6cf;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fffaf7, #f8f2ee);
+}
+
+.price-rollback-card h3 {
+  margin: 4px 0 2px;
+  font-size: 18px;
+}
+
+.price-rollback-card > div:first-child > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.price-rollback-examples {
+  display: grid;
+  gap: 4px;
+}
+
+.price-rollback-examples span {
+  color: #5f5551;
+  font-size: 11px;
+}
+
+.price-rollback-examples b {
+  color: var(--ink);
+}
+
+.price-rollback-examples small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.price-rollback-actions {
+  display: flex;
+  gap: 7px;
+  justify-content: flex-end;
+}
+
+.rollback-confirm {
+  min-height: 42px;
+  border: 0;
+  border-radius: 11px;
+  padding: 0 14px;
+  background: #8e2720;
+  color: white;
+  font-weight: 850;
+}
+
+.rollback-message {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e1d5cf;
+  border-radius: 11px;
+  background: #fff;
+  color: #665a55;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .price-rollback-card {
+    grid-template-columns: 1fr;
+  }
+
+  .price-rollback-actions {
+    justify-content: flex-start;
+  }
+}

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applyPricePatches,
   normalizeProductCode,
+  revertLatestPriceBatch,
   validatePrice,
   validateProductCode,
   validateProductDraft,
@@ -47,6 +48,59 @@ describe('master catalog pricing', () => {
     expect(validatePrice(0)).toBe(false)
     expect(validatePrice(4990.5)).toBe(false)
     expect(validatePrice(4990)).toBe(true)
+  })
+
+  it('rolls back the latest multi-product price batch as one operation', () => {
+    const second: Product = {
+      ...product,
+      id: 'orejas',
+      code: '102',
+      name: 'Orejas y corazón',
+      price: 4800,
+      plu: '0048',
+      featured: false,
+      sortOrder: 2,
+    }
+
+    const changed = applyPricePatches(
+      [product, second],
+      [
+        { productId: 'pernil', nextPrice: 5190 },
+        { productId: 'orejas', nextPrice: 4990 },
+      ],
+      '2026-09-24T18:00:00.000Z',
+    )
+
+    const rollback = revertLatestPriceBatch(
+      changed.products,
+      changed.history,
+      '2026-09-24T18:10:00.000Z',
+    )
+
+    expect(rollback.revertedCount).toBe(2)
+    expect(rollback.skippedCount).toBe(0)
+    expect(rollback.products.map((item) => item.price)).toEqual([4898, 4800])
+    expect(rollback.history).toHaveLength(2)
+    expect(rollback.history[0].changedAt).toBe('2026-09-24T18:10:00.000Z')
+  })
+
+  it('does not overwrite a newer price while rolling back an older local batch', () => {
+    const changed = applyPricePatches(
+      [product],
+      [{ productId: 'pernil', nextPrice: 5190 }],
+      '2026-09-24T18:00:00.000Z',
+    )
+
+    const remotelyChanged = changed.products.map((item) => ({ ...item, price: 5290 }))
+    const rollback = revertLatestPriceBatch(
+      remotelyChanged,
+      changed.history,
+      '2026-09-24T18:10:00.000Z',
+    )
+
+    expect(rollback.revertedCount).toBe(0)
+    expect(rollback.skippedCount).toBe(1)
+    expect(rollback.products[0].price).toBe(5290)
   })
 })
 

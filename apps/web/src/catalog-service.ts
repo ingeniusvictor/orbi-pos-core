@@ -6,6 +6,15 @@ export interface PricePatch {
   nextPrice: number
 }
 
+
+export interface PriceRollbackResult {
+  products: Product[]
+  history: PriceChange[]
+  sourceChangedAt: string | null
+  revertedCount: number
+  skippedCount: number
+}
+
 export interface ProductIdentityDraft {
   code: string
   name: string
@@ -85,6 +94,51 @@ export function applyPricePatches(
   })
 
   return { products: nextProducts, history }
+}
+
+
+export function revertLatestPriceBatch(
+  products: Product[],
+  history: PriceChange[],
+  changedAt = new Date().toISOString(),
+): PriceRollbackResult {
+  const sourceChangedAt = history[0]?.changedAt ?? null
+  if (!sourceChangedAt) {
+    return {
+      products,
+      history: [],
+      sourceChangedAt: null,
+      revertedCount: 0,
+      skippedCount: 0,
+    }
+  }
+
+  const batch = history.filter((change) => change.changedAt === sourceChangedAt)
+  const patches: PricePatch[] = []
+  let skippedCount = 0
+
+  for (const change of batch) {
+    const current = products.find((product) => product.id === change.productId)
+    if (!current || current.price !== change.nextPrice) {
+      skippedCount += 1
+      continue
+    }
+
+    patches.push({
+      productId: change.productId,
+      nextPrice: change.previousPrice,
+    })
+  }
+
+  const result = applyPricePatches(products, patches, changedAt)
+
+  return {
+    products: result.products,
+    history: result.history,
+    sourceChangedAt,
+    revertedCount: result.history.length,
+    skippedCount,
+  }
 }
 
 export function createProductId(code: string, name: string): string {
