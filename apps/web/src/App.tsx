@@ -4,13 +4,14 @@ import { loadCatalog, loadPriceHistory, saveCatalog, savePriceHistory } from './
 import { PriceBoard } from './components/PriceBoard'
 import { ProductAdmin } from './components/ProductAdmin'
 import { Showcase } from './components/Showcase'
+import { ScaleMapping } from './components/ScaleMapping'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
 
 const SALES_KEY = 'orbi-pos:pilot-sales'
 
-type AppView = 'sale' | 'prices' | 'products' | 'showcase'
+type AppView = 'sale' | 'prices' | 'products' | 'scale' | 'showcase'
 
 function loadSales(): Sale[] {
   try {
@@ -242,6 +243,7 @@ export function App() {
           <button className={view === 'sale' ? 'active' : ''} onClick={() => setView('sale')}>Venta</button>
           <button className={view === 'prices' ? 'active' : ''} onClick={() => setView('prices')}>Precios</button>
           <button className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Productos</button>
+          <button className={view === 'scale' ? 'active' : ''} onClick={() => setView('scale')}>Balanza</button>
           <button className={view === 'showcase' ? 'active' : ''} onClick={() => setView('showcase')}>Showcase</button>
         </nav>
         <span className={`status sync-${sync.status}`}><i /> {
@@ -270,6 +272,7 @@ export function App() {
         />
       ) : null}
       {view === 'products' ? <ProductAdmin categories={categories} products={products} onChange={(nextProducts) => { void sync.publish(nextProducts) }} /> : null}
+      {view === 'scale' ? <ScaleMapping products={products} onChange={(nextProducts) => { void sync.publish(nextProducts) }} /> : null}
       {view === 'showcase' ? (
         <section className="showcase-admin-page">
           <div className="admin-heading">
