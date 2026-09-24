@@ -19,7 +19,11 @@ export function PriceBoard({ categories, products, history, onCommit }: Props) {
   const visible = useMemo(() => products.filter((product) => {
     const matchesCategory = categoryId === 'all' || product.categoryId === categoryId
     const term = query.trim().toLowerCase()
-    const matchesQuery = !term || product.name.toLowerCase().includes(term) || product.code.toLowerCase().includes(term) || product.plu?.toLowerCase().includes(term)
+    const matchesQuery = !term
+      || product.name.toLowerCase().includes(term)
+      || product.code.toLowerCase().includes(term)
+      || Boolean(product.plu?.toLowerCase().includes(term))
+
     return matchesCategory && matchesQuery && product.active
   }), [categoryId, products, query])
 
@@ -34,12 +38,25 @@ export function PriceBoard({ categories, products, history, onCommit }: Props) {
     })
     .filter((patch): patch is { productId: string; nextPrice: number } => patch !== null)
 
+  function adjustDraft(product: Product, delta: number) {
+    setDrafts((current) => {
+      const currentValue = Number(current[product.id] ?? product.price) || product.price
+      return {
+        ...current,
+        [product.id]: String(Math.max(10, currentValue + delta)),
+      }
+    })
+  }
+
   function applyBulk() {
     const percent = Number(bulkPercent.replace(',', '.'))
     if (!Number.isFinite(percent) || percent === 0) return
+
     const nextDrafts = { ...drafts }
     visible.forEach((product) => {
-      nextDrafts[product.id] = String(Math.max(10, Math.round((product.price * (1 + percent / 100)) / 10) * 10))
+      nextDrafts[product.id] = String(
+        Math.max(10, Math.round((product.price * (1 + percent / 100)) / 10) * 10),
+      )
     })
     setDrafts(nextDrafts)
   }
@@ -93,6 +110,7 @@ export function PriceBoard({ categories, products, history, onCommit }: Props) {
         {visible.map((product) => {
           const draft = drafts[product.id]
           const changed = draft !== undefined && Number(draft.replace(/[^0-9]/g, '')) !== product.price
+
           return (
             <div className={changed ? 'price-row changed' : 'price-row'} key={product.id}>
               <strong>{product.code}</strong>
@@ -100,15 +118,21 @@ export function PriceBoard({ categories, products, history, onCommit }: Props) {
                 <b>{product.name}</b>
                 <small>{product.plu ? `PLU ${product.plu}` : 'PLU pendiente'} · {product.unitType}</small>
               </div>
-              <strong>{formatCLP(product.price)}<small> / {product.unitType === 'KG' ? 'kg' : product.unitType.toLowerCase()}</small></strong>
+              <strong>
+                {formatCLP(product.price)}
+                <small> / {product.unitType === 'KG' ? 'kg' : product.unitType.toLowerCase()}</small>
+              </strong>
               <div className="price-editor">
-                <button onClick={() => setDrafts((current) => ({ ...current, [product.id]: String(Math.max(10, (Number(current[product.id] ?? product.price) || product.price) - 100) }))}>−100</button>
+                <button type="button" onClick={() => adjustDraft(product, -100)}>−100</button>
                 <input
                   inputMode="numeric"
                   value={draft ?? String(product.price)}
-                  onChange={(event) => setDrafts((current) => ({ ...current, [product.id]: event.target.value.replace(/[^0-9]/g, '') }))}
+                  onChange={(event) => setDrafts((current) => ({
+                    ...current,
+                    [product.id]: event.target.value.replace(/[^0-9]/g, ''),
+                  }))}
                 />
-                <button onClick={() => setDrafts((current) => ({ ...current, [product.id]: String((Number(current[product.id] ?? product.price) || product.price) + 100) }))}>+100</button>
+                <button type="button" onClick={() => adjustDraft(product, 100)}>+100</button>
               </div>
             </div>
           )
