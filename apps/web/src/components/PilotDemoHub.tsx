@@ -137,9 +137,14 @@ export function PilotDemoHub({ products }: { products: Product[] }) {
             <strong>{readiness.fieldReadyCount}/{readiness.fieldTotal}</strong>
             <span>{fieldPercent}% de hitos verificados</span>
           </div>
-          <button type="button" className="ghost" onClick={() => go('/?view=discovery')}>
-            Completar levantamiento ↗
-          </button>
+          <div className="pilot-hub-hero-actions">
+            <button type="button" className="primary" onClick={() => go('/piloto/sesion')}>
+              ▶ Iniciar demo completa
+            </button>
+            <button type="button" className="ghost" onClick={() => go('/?view=discovery')}>
+              Completar levantamiento ↗
+            </button>
+          </div>
         </div>
       </section>
 
@@ -265,7 +270,8 @@ export function PilotDemoHub({ products }: { products: Product[] }) {
         </div>
         <div className="pilot-footer-actions">
           <button type="button" className="ghost" onClick={() => go('/?view=discovery')}>Levantamiento</button>
-          <button type="button" className="primary" onClick={() => go('/modernizacion')}>Abrir propuesta</button>
+          <button type="button" className="ghost" onClick={() => go('/modernizacion')}>Abrir propuesta</button>
+          <button type="button" className="primary" onClick={() => go('/piloto/sesion')}>Iniciar demo completa</button>
         </div>
       </footer>
     </main>
