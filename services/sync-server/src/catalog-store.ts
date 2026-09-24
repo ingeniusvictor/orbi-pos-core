@@ -43,6 +43,7 @@ function validateProducts(products: unknown): asserts products is ProductPayload
 
   const ids = new Set<string>()
   const codes = new Set<string>()
+  const plus = new Set<string>()
 
   for (const candidate of products) {
     if (!candidate || typeof candidate !== 'object') throw new Error('Invalid product')
@@ -51,17 +52,33 @@ function validateProducts(products: unknown): asserts products is ProductPayload
     if (!product.id || !product.code || !product.name || !product.categoryId) {
       throw new Error('Product identity fields are required')
     }
+    if (!/^[A-Z0-9-]{1,12}$/.test(product.code)) {
+      throw new Error(`Invalid customer code: ${product.code}`)
+    }
+    if (product.plu !== undefined && !/^\d{1,6}$/.test(product.plu)) {
+      throw new Error(`Invalid PLU for ${product.id}`)
+    }
     if (!Number.isInteger(product.price) || (product.price ?? 0) <= 0) {
       throw new Error(`Invalid price for ${product.id}`)
     }
     if (!['KG', 'UNIT', 'PACK'].includes(product.unitType ?? '')) {
       throw new Error(`Invalid unit type for ${product.id}`)
     }
+    if (!Number.isInteger(product.sortOrder) || (product.sortOrder ?? -1) < 0) {
+      throw new Error(`Invalid sort order for ${product.id}`)
+    }
+    if (typeof product.active !== 'boolean'
+      || typeof product.showOnShowcase !== 'boolean'
+      || typeof product.featured !== 'boolean') {
+      throw new Error(`Invalid product flags for ${product.id}`)
+    }
     if (ids.has(product.id)) throw new Error(`Duplicate product id: ${product.id}`)
     if (codes.has(product.code)) throw new Error(`Duplicate customer code: ${product.code}`)
+    if (product.plu && plus.has(product.plu)) throw new Error(`Duplicate PLU: ${product.plu}`)
 
     ids.add(product.id)
     codes.add(product.code)
+    if (product.plu) plus.add(product.plu)
   }
 }
 
