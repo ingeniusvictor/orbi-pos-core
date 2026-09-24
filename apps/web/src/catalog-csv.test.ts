@@ -25,6 +25,7 @@ describe('catalog CSV', () => {
 
     expect(csv).toContain('0047')
     expect(preview.rejected).toBe(0)
+    expect(preview.unchanged).toBe(1)
     expect(preview.nextProducts[0].plu).toBe('0047')
   })
 
