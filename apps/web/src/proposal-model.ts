@@ -61,7 +61,12 @@ export function calculateModernization(
     input.pointDeviceCost,
     input.showcaseTvCost,
     input.miniPcCost,
-  ].reduce<number>((sum, value) => sum + (validMoney(value) ? value : 0), 0)
+  ].reduce<number>((sum, value) => {
+    const amount = typeof value === 'number' && Number.isFinite(value) && value >= 0
+      ? value
+      : 0
+    return sum + amount
+  }, 0)
 
   if (missing.length) {
     return {
