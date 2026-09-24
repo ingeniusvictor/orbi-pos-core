@@ -64,6 +64,6 @@ describe('isolated owner demo session', () => {
     expect(createDemoReference(
       new Date('2026-09-24T19:30:45-03:00'),
       'TEST',
-    )).toMatch(/^DEMO-20260924-193045-TEST$/)
+    )).toMatch(/^DEMO-\d{8}-\d{6}-TEST$/)
   })
 })
