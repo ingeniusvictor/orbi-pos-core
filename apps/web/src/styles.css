@@ -1397,3 +1397,211 @@ button { cursor: pointer; }
     grid-column: 2;
   }
 }
+
+
+/* ── OC-08 TV kiosk & pilot resilience ───────────────────────────── */
+.showcase-kiosk.kiosk-idle {
+  cursor: none;
+}
+
+.showcase-pagination {
+  transition: opacity .22s ease, transform .22s ease;
+}
+
+.showcase-pagination.controls-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 8px);
+}
+
+.showcase-kiosk-tools {
+  position: absolute;
+  right: 18px;
+  bottom: 70px;
+  z-index: 8;
+  display: flex;
+  gap: 6px;
+  padding: 7px;
+  border-radius: 13px;
+  background: rgba(4, 5, 6, .62);
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(10px);
+}
+
+.showcase-kiosk-tools button {
+  min-width: 38px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 9px;
+  background: rgba(255,255,255,.08);
+  color: white;
+  font-size: 19px;
+  font-weight: 850;
+}
+
+.showcase-kiosk-tools button:hover {
+  background: rgba(255,255,255,.16);
+}
+
+.showcase-connection {
+  position: absolute;
+  left: 18px;
+  bottom: 70px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 340px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 12px;
+  background: rgba(8,9,10,.78);
+  color: white;
+  backdrop-filter: blur(10px);
+}
+
+.showcase-connection > i {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.showcase-connection > div {
+  display: grid;
+  gap: 1px;
+}
+
+.showcase-connection strong {
+  font-size: 12px;
+}
+
+.showcase-connection span {
+  color: #c8c8c8;
+  font-size: 9px;
+}
+
+.showcase-connection.tone-working > i { background: #e2ad2d; }
+.showcase-connection.tone-warning > i { background: #e45247; }
+.showcase-connection.tone-ok > i { background: #5ba84b; }
+
+.showcase-paused {
+  position: absolute;
+  top: 102px;
+  right: 20px;
+  z-index: 8;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: rgba(0,0,0,.62);
+  color: #ddd;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.diagnostics-page {
+  max-width: 1400px;
+}
+
+.diagnostic-main-state {
+  min-width: 190px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.diagnostic-main-state i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #aaa;
+}
+
+.diagnostic-main-state.state-synced i { background: #4a8a37; }
+.diagnostic-main-state.state-syncing i,
+.diagnostic-main-state.state-connecting i { background: #c79a20; }
+.diagnostic-main-state.state-offline i,
+.diagnostic-main-state.state-conflict i,
+.diagnostic-main-state.state-local i { background: #c4493d; }
+
+.diagnostic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.diagnostic-card {
+  min-height: 170px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.diagnostic-card small {
+  color: var(--brand);
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  font-weight: 850;
+}
+
+.diagnostic-card strong {
+  font-size: clamp(23px, 3vw, 34px);
+  line-height: 1;
+}
+
+.diagnostic-card span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.diagnostic-card b {
+  margin-top: 4px;
+  color: #594f4a;
+  font-size: 11px;
+}
+
+.diagnostic-note {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fbf7f4;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.diagnostic-note strong {
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  .diagnostic-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .showcase-connection {
+    max-width: 260px;
+  }
+}
+
+@media (max-width: 580px) {
+  .diagnostic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .diagnostic-main-state {
+    min-width: 0;
+  }
+}
