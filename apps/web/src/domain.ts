@@ -9,13 +9,28 @@ export interface Category {
 
 export interface Product {
   id: string
+  code: string
   categoryId: string
   name: string
   price: number
   unitType: UnitType
   plu?: string
   imageUrl?: string
+  active: boolean
+  showOnShowcase: boolean
+  featured: boolean
+  sortOrder: number
+  priceUpdatedAt?: string
   verifiedPilotData?: boolean
+}
+
+export interface PriceChange {
+  id: string
+  productId: string
+  productName: string
+  previousPrice: number
+  nextPrice: number
+  changedAt: string
 }
 
 export interface CartLine {

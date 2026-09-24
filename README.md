@@ -61,4 +61,11 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS  
-**Milestone:** OC-01 Foundation
+**Milestone:** OC-02 Master Catalog & Pricing (in development)
+
+
+## OC-02 direction
+
+The current development branch adds a master product catalog, a dedicated quick-price board and the first full-screen `/showcase` surface. The Showcase and sales UI read from the same catalog so price changes are not duplicated.
+
+For the pilot, persistence remains local to one browser. Cross-device synchronization and RM-60 publishing are intentionally deferred until the real hardware/data flow is confirmed.

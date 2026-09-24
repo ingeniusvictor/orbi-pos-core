@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { categories, products } from './catalog'
-import type { CartLine, PaymentMethod, Product, Sale } from './domain'
+import { categories } from './catalog'
+import { loadCatalog, loadPriceHistory, saveCatalog, savePriceHistory } from './catalog-storage'
+import { PriceBoard } from './components/PriceBoard'
+import { ProductAdmin } from './components/ProductAdmin'
+import { Showcase } from './components/Showcase'
+import type { CartLine, PaymentMethod, PriceChange, Product, Sale, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 
 const SALES_KEY = 'orbi-pos:pilot-sales'
+
+type AppView = 'sale' | 'prices' | 'products' | 'showcase'
 
 function loadSales(): Sale[] {
   try {
@@ -17,6 +23,12 @@ function saveSales(sales: Sale[]) {
   localStorage.setItem(SALES_KEY, JSON.stringify(sales))
 }
 
+function unitLabel(unitType: UnitType) {
+  if (unitType === 'KG') return 'kg'
+  if (unitType === 'UNIT') return 'un'
+  return 'pack'
+}
+
 function ProductDialog({
   product,
   onClose,
@@ -27,9 +39,9 @@ function ProductDialog({
   onAdd: (product: Product, quantity: number) => void
 }) {
   const [quantity, setQuantity] = useState('')
-
   const parsed = Number(quantity.replace(',', '.'))
   const subtotal = Number.isFinite(parsed) && parsed > 0 ? lineSubtotal(product, parsed) : 0
+  const isWeighted = product.unitType === 'KG'
 
   function submit() {
     if (!Number.isFinite(parsed) || parsed <= 0) return
@@ -42,26 +54,26 @@ function ProductDialog({
       <section className="product-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="Cerrar">×</button>
         <div className="product-hero">
-          <span>🥩</span>
+          {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <span>🥩</span>}
         </div>
-        <p className="eyebrow">Agregar a la venta</p>
+        <p className="eyebrow">COD {product.code} · Agregar a la venta</p>
         <h2>{product.name}</h2>
-        <p className="price">{formatCLP(product.price)} <span>/ kg</span></p>
+        <p className="price">{formatCLP(product.price)} <span>/ {unitLabel(product.unitType)}</span></p>
 
-        <label className="weight-label" htmlFor="weight">Peso en kg</label>
+        <label className="weight-label" htmlFor="quantity">{isWeighted ? 'Peso en kg' : 'Cantidad'}</label>
         <div className="weight-control">
           <input
-            id="weight"
+            id="quantity"
             autoFocus
             inputMode="decimal"
-            placeholder="Ej. 1,146"
+            placeholder={isWeighted ? 'Ej. 1,146' : 'Ej. 2'}
             value={quantity}
             onChange={(event) => setQuantity(event.target.value.replace(/[^0-9.,]/g, ''))}
             onKeyDown={(event) => {
               if (event.key === 'Enter') submit()
             }}
           />
-          <span>kg</span>
+          <span>{unitLabel(product.unitType)}</span>
         </div>
 
         <div className="modal-total">
@@ -77,35 +89,26 @@ function ProductDialog({
   )
 }
 
-export function App() {
+function SaleView({ products, sales, setSales }: {
+  products: Product[]
+  sales: Sale[]
+  setSales: (updater: (sales: Sale[]) => Sale[]) => void
+}) {
   const [categoryId, setCategoryId] = useState('all')
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [cart, setCart] = useState<CartLine[]>([])
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
-  const [sales, setSales] = useState<Sale[]>(loadSales)
   const [notice, setNotice] = useState('')
 
-  useEffect(() => {
-    saveSales(sales)
-  }, [sales])
-
   const visibleProducts = useMemo(
-    () => products.filter((product) => categoryId === 'all' || product.categoryId === categoryId),
-    [categoryId],
+    () => products.filter((product) => product.active && (categoryId === 'all' || product.categoryId === categoryId)),
+    [categoryId, products],
   )
 
   const today = new Date().toDateString()
   const todaySales = sales.filter((sale) => new Date(sale.createdAt).toDateString() === today)
   const todayTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0)
   const total = cartTotal(cart)
-
-  function addToCart(product: Product, quantity: number) {
-    setCart((current) => [...current, makeCartLine(product, quantity)])
-  }
-
-  function removeLine(id: string) {
-    setCart((current) => current.filter((line) => line.id !== id))
-  }
 
   function checkout() {
     if (!cart.length) return
@@ -117,27 +120,10 @@ export function App() {
   }
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">O</div>
-          <div>
-            <p className="eyebrow">ORBI POS</p>
-            <h1>El Chunchito</h1>
-          </div>
-        </div>
-        <div className="top-actions">
-          <span className="status"><i /> Demo local</span>
-          <div className="daily-mini">
-            <small>Ventas hoy</small>
-            <strong>{formatCLP(todayTotal)}</strong>
-            <span>{todaySales.length} operaciones</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="pilot-banner">
-        Piloto de interfaz · No emite boleta SII · Los productos cargados son datos de prueba verificados del vale RM-60.
+    <>
+      <div className="daily-ribbon">
+        <div><small>Ventas hoy</small><strong>{formatCLP(todayTotal)}</strong></div>
+        <span>{todaySales.length} operaciones</span>
       </div>
 
       <main className="workspace">
@@ -147,7 +133,6 @@ export function App() {
               <p className="eyebrow">Nueva venta</p>
               <h2>¿Qué vamos a vender?</h2>
             </div>
-            <button className="ghost" type="button">＋ Producto</button>
           </div>
 
           <div className="category-strip" aria-label="Categorías">
@@ -157,8 +142,7 @@ export function App() {
                 className={categoryId === category.id ? 'category active' : 'category'}
                 onClick={() => setCategoryId(category.id)}
               >
-                <span>{category.icon}</span>
-                {category.name}
+                <span>{category.icon}</span>{category.name}
               </button>
             ))}
           </div>
@@ -168,62 +152,39 @@ export function App() {
               {visibleProducts.map((product) => (
                 <button className="product-card" key={product.id} onClick={() => setSelectedProduct(product)}>
                   <div className="product-image">
-                    <span>🥩</span>
-                    {product.verifiedPilotData ? <b>Dato real piloto</b> : null}
+                    {product.imageUrl ? <img src={product.imageUrl} alt={product.name} /> : <span>🥩</span>}
+                    <b>COD {product.code}</b>
                   </div>
                   <div className="product-copy">
                     <h3>{product.name}</h3>
-                    <p>{formatCLP(product.price)} <span>/ kg</span></p>
-                    <small>Tocar para pesar</small>
+                    <p>{formatCLP(product.price)} <span>/ {unitLabel(product.unitType)}</span></p>
+                    <small>{product.plu ? `PLU ${product.plu}` : 'Tocar para agregar'}</small>
                   </div>
                 </button>
               ))}
             </div>
           ) : (
             <div className="empty-state">
-              <span>📦</span>
-              <h3>Esta categoría está lista</h3>
-              <p>Falta cargar los productos reales de El Chunchito.</p>
+              <span>📦</span><h3>Sin productos activos</h3><p>Carga productos desde la sección Productos.</p>
             </div>
           )}
         </section>
 
         <aside className="cart-panel">
           <div className="cart-heading">
-            <div>
-              <p className="eyebrow">Venta actual</p>
-              <h2>{cart.length ? `${cart.length} producto${cart.length === 1 ? '' : 's'}` : 'Carrito vacío'}</h2>
-            </div>
+            <div><p className="eyebrow">Venta actual</p><h2>{cart.length ? `${cart.length} línea${cart.length === 1 ? '' : 's'}` : 'Carrito vacío'}</h2></div>
             {cart.length ? <button className="link-danger" onClick={() => setCart([])}>Vaciar</button> : null}
           </div>
-
           <div className="cart-lines">
             {cart.length ? cart.map((line) => (
               <div className="cart-line" key={line.id}>
-                <div>
-                  <strong>{line.name}</strong>
-                  <span>{line.quantity.toFixed(3).replace('.', ',')} kg × {formatCLP(line.unitPrice)}</span>
-                </div>
-                <div className="line-price">
-                  <strong>{formatCLP(line.subtotal)}</strong>
-                  <button onClick={() => removeLine(line.id)} aria-label={`Quitar ${line.name}`}>×</button>
-                </div>
+                <div><strong>{line.name}</strong><span>{line.quantity.toFixed(line.unitType === 'KG' ? 3 : 0).replace('.', ',')} {unitLabel(line.unitType)} × {formatCLP(line.unitPrice)}</span></div>
+                <div className="line-price"><strong>{formatCLP(line.subtotal)}</strong><button onClick={() => setCart((current) => current.filter((item) => item.id !== line.id))}>×</button></div>
               </div>
-            )) : (
-              <div className="cart-empty">
-                <div>🛒</div>
-                <strong>Empieza tocando un producto</strong>
-                <span>El peso y subtotal aparecerán aquí.</span>
-              </div>
-            )}
+            )) : <div className="cart-empty"><div>🛒</div><strong>Empieza tocando un producto</strong><span>El subtotal aparecerá aquí.</span></div>}
           </div>
-
           <div className="checkout">
-            <div className="total-row">
-              <span>Total</span>
-              <strong>{formatCLP(total)}</strong>
-            </div>
-
+            <div className="total-row"><span>Total</span><strong>{formatCLP(total)}</strong></div>
             <p className="payment-title">Forma de pago</p>
             <div className="payment-grid">
               {([
@@ -232,29 +193,81 @@ export function App() {
                 ['credit', '▣', 'Crédito'],
                 ['transfer', '↗', 'Transferencia'],
               ] as const).map(([value, icon, label]) => (
-                <button
-                  key={value}
-                  className={paymentMethod === value ? 'payment active' : 'payment'}
-                  onClick={() => setPaymentMethod(value)}
-                >
-                  <span>{icon}</span>
-                  {label}
+                <button key={value} className={paymentMethod === value ? 'payment active' : 'payment'} onClick={() => setPaymentMethod(value)}>
+                  <span>{icon}</span>{label}
                 </button>
               ))}
             </div>
-
-            <button className="primary checkout-button" onClick={checkout} disabled={!cart.length}>
-              Cobrar {cart.length ? formatCLP(total) : ''}
-            </button>
+            <button className="primary checkout-button" onClick={checkout} disabled={!cart.length}>Cobrar {cart.length ? formatCLP(total) : ''}</button>
           </div>
         </aside>
       </main>
 
       {selectedProduct ? (
-        <ProductDialog product={selectedProduct} onClose={() => setSelectedProduct(null)} onAdd={addToCart} />
+        <ProductDialog
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAdd={(product, quantity) => setCart((current) => [...current, makeCartLine(product, quantity)])}
+        />
       ) : null}
-
       {notice ? <div className="toast">{notice}</div> : null}
+    </>
+  )
+}
+
+export function App() {
+  const [view, setView] = useState<AppView>('sale')
+  const [products, setProducts] = useState<Product[]>(loadCatalog)
+  const [history, setHistory] = useState<PriceChange[]>(loadPriceHistory)
+  const [sales, setSales] = useState<Sale[]>(loadSales)
+
+  useEffect(() => saveCatalog(products), [products])
+  useEffect(() => savePriceHistory(history), [history])
+  useEffect(() => saveSales(sales), [sales])
+
+  if (window.location.pathname.replace(/\/$/, '').endsWith('/showcase')) {
+    return <Showcase products={products} />
+  }
+
+  return (
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <div className="brand-mark">O</div>
+          <div><p className="eyebrow">ORBI POS</p><h1>El Chunchito</h1></div>
+        </div>
+        <nav className="main-nav">
+          <button className={view === 'sale' ? 'active' : ''} onClick={() => setView('sale')}>Venta</button>
+          <button className={view === 'prices' ? 'active' : ''} onClick={() => setView('prices')}>Precios</button>
+          <button className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Productos</button>
+          <button className={view === 'showcase' ? 'active' : ''} onClick={() => setView('showcase')}>Showcase</button>
+        </nav>
+        <span className="status"><i /> Piloto local</span>
+      </header>
+
+      <div className="pilot-banner">
+        Catálogo maestro local · No emite boleta SII · Sin sincronización automática con RM-60 todavía.
+      </div>
+
+      {view === 'sale' ? <SaleView products={products} sales={sales} setSales={setSales} /> : null}
+      {view === 'prices' ? (
+        <PriceBoard
+          categories={categories}
+          products={products}
+          history={history}
+          onCommit={(nextProducts, nextHistory) => { setProducts(nextProducts); setHistory(nextHistory) }}
+        />
+      ) : null}
+      {view === 'products' ? <ProductAdmin categories={categories} products={products} onChange={setProducts} /> : null}
+      {view === 'showcase' ? (
+        <section className="showcase-admin-page">
+          <div className="admin-heading">
+            <div><p className="eyebrow">Pantalla cliente</p><h2>ORBI Showcase</h2><p>Esta vista usa exactamente los mismos precios del catálogo maestro.</p></div>
+            <button className="primary" onClick={() => window.open('/showcase', '_blank', 'noopener,noreferrer')}>Abrir pantalla completa ↗</button>
+          </div>
+          <Showcase products={products} preview />
+        </section>
+      ) : null}
     </div>
   )
 }

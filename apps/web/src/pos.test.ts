@@ -2,21 +2,21 @@ import { describe, expect, it } from 'vitest'
 import { cartTotal, lineSubtotal } from './pos'
 import type { Product } from './domain'
 
-const pernil: Product = {
-  id: 'pernil',
-  categoryId: 'pork',
-  name: 'Pernil',
-  price: 4898,
-  unitType: 'KG',
+function product(input: Pick<Product, 'id' | 'name' | 'price'>): Product {
+  return {
+    ...input,
+    code: input.id === 'pernil' ? '101' : '102',
+    categoryId: 'pork',
+    unitType: 'KG',
+    active: true,
+    showOnShowcase: true,
+    featured: input.id === 'pernil',
+    sortOrder: input.id === 'pernil' ? 1 : 2,
+  }
 }
 
-const orejasCorazon: Product = {
-  id: 'orejas-corazon',
-  categoryId: 'pork',
-  name: 'Orejas y corazón',
-  price: 4800,
-  unitType: 'KG',
-}
+const pernil = product({ id: 'pernil', name: 'Pernil', price: 4898 })
+const orejasCorazon = product({ id: 'orejas-corazon', name: 'Orejas y corazón', price: 4800 })
 
 describe('ORBI POS calculations', () => {
   it('matches the RM-60 pernil receipt line', () => {
