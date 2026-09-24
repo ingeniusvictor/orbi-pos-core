@@ -139,12 +139,15 @@ export function ModernizationProposal({ presentation = false }: Props) {
   ) {
     setState((current) => {
       const nextInputs = { ...current.inputs, [key]: value }
+      const refreshed = bridgeDiscoveryToProposal(
+        nextInputs,
+        loadDiscoveryForBridge(),
+        current.bridge.snapshot,
+      )
+
       return {
-        inputs: nextInputs,
-        bridge: {
-          ...current.bridge,
-          inputs: nextInputs,
-        },
+        inputs: refreshed.inputs,
+        bridge: refreshed,
       }
     })
   }
