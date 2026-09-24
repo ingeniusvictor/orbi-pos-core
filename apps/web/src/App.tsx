@@ -6,6 +6,7 @@ import { ProductAdmin } from './components/ProductAdmin'
 import { Showcase } from './components/Showcase'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
+import { useCatalogSync } from './use-catalog-sync'
 
 const SALES_KEY = 'orbi-pos:pilot-sales'
 
@@ -220,6 +221,7 @@ export function App() {
   const [products, setProducts] = useState<Product[]>(loadCatalog)
   const [history, setHistory] = useState<PriceChange[]>(loadPriceHistory)
   const [sales, setSales] = useState<Sale[]>(loadSales)
+  const sync = useCatalogSync({ products, setProducts })
 
   useEffect(() => saveCatalog(products), [products])
   useEffect(() => savePriceHistory(history), [history])
@@ -242,11 +244,20 @@ export function App() {
           <button className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Productos</button>
           <button className={view === 'showcase' ? 'active' : ''} onClick={() => setView('showcase')}>Showcase</button>
         </nav>
-        <span className="status"><i /> Piloto local</span>
+        <span className={`status sync-${sync.status}`}><i /> {
+          sync.status === 'synced' ? `TV sincronizada · r${sync.revision}`
+            : sync.status === 'syncing' ? 'Actualizando TV...'
+            : sync.status === 'offline' ? 'Sin conexión · usando caché'
+            : sync.status === 'conflict' ? 'Cambio remoto detectado'
+            : sync.status === 'connecting' ? 'Buscando servidor...'
+            : 'Piloto local'
+        }</span>
       </header>
 
       <div className="pilot-banner">
-        Catálogo maestro local · No emite boleta SII · Sin sincronización automática con RM-60 todavía.
+        {sync.status === 'local'
+          ? 'Catálogo maestro local · No emite boleta SII · Sin sincronización automática con RM-60 todavía.'
+          : `Catálogo compartido ${sync.storeId} · Showcase consulta cambios cada 3 s · RM-60 todavía no recibe precios automáticamente.`}
       </div>
 
       {view === 'sale' ? <SaleView products={products} sales={sales} setSales={setSales} /> : null}
@@ -255,10 +266,10 @@ export function App() {
           categories={categories}
           products={products}
           history={history}
-          onCommit={(nextProducts, nextHistory) => { setProducts(nextProducts); setHistory(nextHistory) }}
+          onCommit={(nextProducts, nextHistory) => { setHistory(nextHistory); void sync.publish(nextProducts) }}
         />
       ) : null}
-      {view === 'products' ? <ProductAdmin categories={categories} products={products} onChange={setProducts} /> : null}
+      {view === 'products' ? <ProductAdmin categories={categories} products={products} onChange={(nextProducts) => { void sync.publish(nextProducts) }} /> : null}
       {view === 'showcase' ? (
         <section className="showcase-admin-page">
           <div className="admin-heading">
