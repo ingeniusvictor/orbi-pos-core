@@ -148,6 +148,28 @@ app.get('/api/stores/:storeId/payments/orders/:orderId', async (req, res) => {
   }
 })
 
+app.post('/api/stores/:storeId/payments/reconcile-provider-order', async (req, res) => {
+  try {
+    const providerOrderId = String(req.body?.providerOrderId ?? '')
+    if (!providerOrderId) {
+      return res.status(400).json({
+        code: 'PROVIDER_ORDER_ID_REQUIRED',
+        message: 'providerOrderId is required',
+      })
+    }
+
+    return res.json(await paymentService.reconcileProviderOrder(
+      req.params.storeId,
+      providerOrderId,
+    ))
+  } catch (error) {
+    return res.status(409).json({
+      code: 'PAYMENT_RECONCILE_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
 app.post('/api/stores/:storeId/payments/orders/:orderId/cancel', async (req, res) => {
   try {
     return res.json(await paymentService.cancel(req.params.storeId, req.params.orderId))
