@@ -4,16 +4,17 @@ ORBI POS Core is the retail point-of-sale foundation for small businesses.
 
 The first pilot is **ORBI POS — El Chunchito**, focused on proving that a modern, visual and easy-to-use sales interface can improve day-to-day counter operations before adding more advanced modules.
 
-## Pilot goals
+## Current pilot
 
-The v0.1 pilot is intentionally small:
+The first working slice already includes:
 
 - visual product categories;
-- product cards with price and unit;
-- weight / quantity entry;
+- two products seeded from real El Chunchito RM-60 receipt data;
+- weight entry;
+- RM-60-compatible CLP 10 subtotal rounding;
 - cart and automatic totals;
 - payment method selection;
-- completed-sale history;
+- local completed-sale persistence;
 - simple daily sales summary.
 
 Not included in the first pilot:
@@ -26,6 +27,22 @@ Not included in the first pilot:
 - public ecommerce website.
 
 Those remain possible later modules only after the pilot proves useful to real users.
+
+## Run locally
+
+Requirements: Node.js 20+ and npm.
+
+```bash
+npm install
+npm run dev
+```
+
+Build and validate:
+
+```bash
+npm test
+npm run build
+```
 
 ## Technical direction
 
@@ -44,4 +61,4 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS  
-**Status:** Foundation
+**Milestone:** OC-01 Foundation
