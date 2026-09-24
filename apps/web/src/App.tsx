@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { categories, products } from './catalog'
 import type { CartLine, PaymentMethod, Product, Sale } from './domain'
-import { cartTotal, completeSale, formatCLP, makeCartLine, paymentLabel } from './pos'
+import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 
 const SALES_KEY = 'orbi-pos:pilot-sales'
 
@@ -29,7 +29,7 @@ function ProductDialog({
   const [quantity, setQuantity] = useState('')
 
   const parsed = Number(quantity.replace(',', '.'))
-  const subtotal = Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * product.price) : 0
+  const subtotal = Number.isFinite(parsed) && parsed > 0 ? lineSubtotal(product, parsed) : 0
 
   function submit() {
     if (!Number.isFinite(parsed) || parsed <= 0) return
@@ -147,7 +147,7 @@ export function App() {
               <p className="eyebrow">Nueva venta</p>
               <h2>¿Qué vamos a vender?</h2>
             </div>
-            <button className="ghost">＋ Producto</button>
+            <button className="ghost" type="button">＋ Producto</button>
           </div>
 
           <div className="category-strip" aria-label="Categorías">
