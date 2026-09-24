@@ -4151,3 +4151,13 @@ body:has(.modernization-page.presentation) {
     display: inline-flex;
   }
 }
+
+
+.main-nav button.nav-pilot {
+  color: #fff;
+  background: linear-gradient(135deg, #ad2b24, #771813);
+  box-shadow: 0 8px 18px -12px rgba(116,22,19,.9);
+}
+.main-nav button.nav-pilot:hover {
+  filter: brightness(1.04);
+}
