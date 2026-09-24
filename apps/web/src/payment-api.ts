@@ -72,6 +72,18 @@ export async function fetchPaymentRuntime(
   return await jsonOrError<PaymentRuntimeInfo>(response)
 }
 
+
+export async function listPaymentOrders(
+  storeId = ORBI_STORE_ID,
+  limit = 30,
+): Promise<PaymentOrder[]> {
+  const response = await fetch(
+    orbiApi(`/api/stores/${encodeURIComponent(storeId)}/payments/orders?limit=${limit}`),
+    { cache: 'no-store' },
+  )
+  return await jsonOrError<PaymentOrder[]>(response)
+}
+
 export async function createPaymentOrder(
   amount: number,
   requestedMethod: Extract<PaymentMethod, 'debit' | 'credit'>,
