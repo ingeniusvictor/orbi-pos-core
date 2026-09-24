@@ -30,6 +30,7 @@ The current working slice includes:
 - Point Webhook HMAC verifier + authoritative provider-order reconciliation;
 - `action_required` safety state requiring terminal review;
 - card checkout state machine that only closes sales after payment status `processed`;
+- owner-facing modernization proposal with evidence-aware cost-benefit calculator;
 - simple daily sales summary.
 
 Only the two prices verified from the supplied El Chunchito RM-60 receipt are preloaded.
@@ -117,7 +118,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-16 Secure Point Reconciliation + OC-17 RM-60 Fleet
+**Milestone:** OC-18 Owner Modernization Proposal
 
 
 ## TV pilot on Windows
@@ -183,3 +184,16 @@ The local ORBI server is not a public Mercado Pago Webhook target.
 OC-16 prepares a public-relay architecture and includes Mercado Pago HMAC verification plus authoritative order reconciliation. A future public relay must validate the webhook and persist/deduplicate the event, while the shop ORBI confirms the final state using Mercado Pago `GET /v1/orders/{id}` before treating a card sale as paid.
 
 The `action_required` Point state is treated as manual attention: ORBI does not close the sale automatically.
+
+
+## Owner modernization proposal
+
+The admin interface includes **Propuesta**, and a standalone meeting view is available at:
+
+~~~text
+http://HOST:8787/modernizacion
+~~~
+
+The comparison separates confirmed shop facts, pending discovery and the target ORBI + Point architecture.
+
+The cost-benefit calculator starts with blank business inputs. It does not claim savings until real current costs, card volume/fees and a current proposal quotation are entered. Draft assumptions are stored only in the local browser.
