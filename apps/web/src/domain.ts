@@ -44,10 +44,19 @@ export interface CartLine {
   subtotal: number
 }
 
+export interface SalePayment {
+  provider: 'mock' | 'mercadopago'
+  orderId: string
+  providerOrderId: string
+  externalReference: string
+  terminalId: string
+}
+
 export interface Sale {
   id: string
   createdAt: string
   lines: CartLine[]
   paymentMethod: PaymentMethod
   total: number
+  payment?: SalePayment
 }
