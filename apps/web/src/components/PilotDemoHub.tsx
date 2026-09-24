@@ -141,6 +141,9 @@ export function PilotDemoHub({ products }: { products: Product[] }) {
             <button type="button" className="primary" onClick={() => go('/piloto/sesion')}>
               ▶ Iniciar demo completa
             </button>
+            <button type="button" className="ghost" onClick={() => go('/piloto/resumen')}>
+              Resumen imprimible
+            </button>
             <button type="button" className="ghost" onClick={() => go('/?view=discovery')}>
               Completar levantamiento ↗
             </button>
@@ -271,6 +274,7 @@ export function PilotDemoHub({ products }: { products: Product[] }) {
         <div className="pilot-footer-actions">
           <button type="button" className="ghost" onClick={() => go('/?view=discovery')}>Levantamiento</button>
           <button type="button" className="ghost" onClick={() => go('/modernizacion')}>Abrir propuesta</button>
+          <button type="button" className="ghost" onClick={() => go('/piloto/resumen')}>Resumen / PDF</button>
           <button type="button" className="primary" onClick={() => go('/piloto/sesion')}>Iniciar demo completa</button>
         </div>
       </footer>

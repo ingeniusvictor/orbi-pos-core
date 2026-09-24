@@ -36,6 +36,7 @@ The current working slice includes:
 - Discovery → Proposal bridge that reuses verified current costs/fees without overwriting manual corrections;
 - owner-facing `/piloto` demo hub with guided navigation and separate software-vs-field readiness;
 - fully isolated `/piloto/sesion` end-to-end owner demo that never writes operational sales/payment data;
+- printable `/piloto/resumen` owner summary with readiness, economics and blockers;
 - direct `?view=` links for opening specific admin workspaces;
 - simple daily sales summary.
 
@@ -124,7 +125,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-22 Isolated Owner Demo Session
+**Milestone:** OC-23 Owner Pilot Summary & Print Pack
 
 
 ## TV pilot on Windows
@@ -257,3 +258,16 @@ http://HOST:8787/piloto/sesion
 This route uses only the illustrative demo catalog and keeps cart, Point simulation and result state in page memory. It does not publish catalog data, create Payment Core orders, persist real sales or emit SII documents.
 
 The demo requires the simulated terminal step before an approval and only creates its in-memory demo receipt after status `processed`.
+
+
+## Printable owner summary
+
+Open:
+
+~~~text
+http://HOST:8787/piloto/resumen
+~~~
+
+The summary combines confirmed current-shop facts, the ORBI target architecture, software readiness, field validation, cost-benefit status and pending blockers.
+
+Use **Imprimir / Guardar PDF** to open the browser print dialog. If the economic inputs are incomplete, the report explicitly remains without an economic conclusion rather than inventing savings.
