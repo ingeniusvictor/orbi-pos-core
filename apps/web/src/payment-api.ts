@@ -6,6 +6,7 @@ export type PaymentProviderId = 'mock' | 'mercadopago'
 export type PaymentOrderStatus =
   | 'created'
   | 'at_terminal'
+  | 'action_required'
   | 'processed'
   | 'failed'
   | 'canceled'
