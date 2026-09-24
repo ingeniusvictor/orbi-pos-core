@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { CatalogConflictError, CatalogStore, type ProductPayload } from './catalog-store.js'
+import { CatalogStore, type ProductPayload } from './catalog-store.js'
 
 const dirs: string[] = []
 
@@ -54,7 +54,7 @@ describe('CatalogStore', () => {
     const current = await store.put('el-chunchito', [{ ...pernil, price: 5190 }], 1)
 
     await expect(store.put('el-chunchito', [{ ...pernil, price: 5290 }], 1))
-      .rejects.toMatchObject<CatalogConflictError>({
+      .rejects.toMatchObject({
         current,
       })
   })
