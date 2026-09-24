@@ -2,54 +2,98 @@
 
 ORBI POS Core is the retail point-of-sale foundation for small businesses.
 
-The first pilot is **ORBI POS — El Chunchito**, focused on proving that a modern, visual and easy-to-use sales interface can improve day-to-day counter operations before adding more advanced modules.
+The first pilot is **ORBI POS — El Chunchito**, focused on proving that a modern, visual and easy-to-use sales experience can improve day-to-day counter operations before adding more advanced modules.
 
 ## Current pilot
 
-The first working slice already includes:
+The current working slice includes:
 
 - visual product categories;
-- two products seeded from real El Chunchito RM-60 receipt data;
-- weight entry;
-- RM-60-compatible CLP 10 subtotal rounding;
-- cart and automatic totals;
-- payment method selection;
-- local completed-sale persistence;
+- master product catalog;
+- customer-facing product codes;
+- optional DIGI RM-60 PLU mapping field;
+- fast price editing and price history;
+- full-screen `/showcase` TV surface;
+- shared LAN catalog synchronization for a separate TV/browser;
+- local cache/fallback when the sync server is unavailable;
+- weight entry and RM-60-compatible CLP 10 subtotal rounding;
+- cart, payment-method selection and local completed-sale persistence;
 - simple daily sales summary.
 
-Not included in the first pilot:
+Only the two prices verified from the supplied El Chunchito RM-60 receipt are preloaded.
+
+Still deliberately excluded:
 
 - SII / DTE issuance;
-- DIGI RM-60 automatic integration;
+- automatic DIGI RM-60 writes;
 - inventory management;
 - supplier management;
-- AI features;
-- public ecommerce website.
+- employee permissions;
+- public ecommerce;
+- AI features.
 
-Those remain possible later modules only after the pilot proves useful to real users.
-
-## Run locally
+## Development
 
 Requirements: Node.js 20+ and npm.
 
+Install:
+
 ```bash
 npm install
-npm run dev
 ```
 
-Build and validate:
+Run the shared catalog server in one terminal:
+
+```bash
+npm run dev:sync
+```
+
+Run the web app in another:
+
+```bash
+npm run dev:web
+```
+
+Vite proxies `/api` to the local sync server.
+
+## Single-process LAN pilot
+
+Build both workspaces:
 
 ```bash
 npm test
 npm run build
 ```
 
+Then start ORBI POS:
+
+```bash
+npm start
+```
+
+The server listens on port `8787` by default and serves both the API and the built web application.
+
+On another device in the same local network, open:
+
+```text
+http://HOST-LAN-IP:8787/
+http://HOST-LAN-IP:8787/showcase
+```
+
+The exact host IP depends on the local network.
+
 ## Technical direction
 
 - React + Vite + TypeScript
+- Node + Express LAN sync service
 - touch-first responsive UI
-- local-first demo workflow
-- modular domain model designed to grow into inventory, suppliers, scale integration and Chilean tax integrations later
+- TV-first 16:9 Showcase
+- local cache plus shared catalog revisions
+- modular domain model prepared for inventory, suppliers, RM-60 integration and Chilean tax integrations later
+
+## Security boundary
+
+The OC-03 synchronization service is intended for a trusted local-network pilot. It has no owner authentication yet and must not be exposed directly to the public internet.
 
 ## Reference repositories
 
@@ -60,12 +104,5 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 ## Pilot
 
 **Business:** Carnicería El Chunchito  
-**Product:** ORBI POS  
-**Milestone:** OC-02 Master Catalog & Pricing (in development)
-
-
-## OC-02 direction
-
-The current development branch adds a master product catalog, a dedicated quick-price board and the first full-screen `/showcase` surface. The Showcase and sales UI read from the same catalog so price changes are not duplicated.
-
-For the pilot, persistence remains local to one browser. Cross-device synchronization and RM-60 publishing are intentionally deferred until the real hardware/data flow is confirmed.
+**Product:** ORBI POS + ORBI Showcase  
+**Milestone:** OC-03 Shared Catalog Sync

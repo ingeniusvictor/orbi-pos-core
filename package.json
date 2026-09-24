@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "workspaces": [
-    "apps/web"
+    "apps/web",
+    "services/sync-server"
   ],
   "scripts": {
     "dev": "npm --workspace=@orbi/pos-web run dev",
-    "build": "npm --workspace=@orbi/pos-web run build",
-    "test": "npm --workspace=@orbi/pos-web run test"
+    "dev:web": "npm --workspace=@orbi/pos-web run dev",
+    "dev:sync": "npm --workspace=@orbi/pos-sync run dev",
+    "build": "npm --workspace=@orbi/pos-web run build && npm --workspace=@orbi/pos-sync run build",
+    "test": "npm --workspace=@orbi/pos-web run test && npm --workspace=@orbi/pos-sync run test",
+    "start": "npm --workspace=@orbi/pos-sync run start"
   }
 }
