@@ -6,6 +6,7 @@ import { ProductAdmin } from './components/ProductAdmin'
 import { Showcase } from './components/Showcase'
 import { ShowcaseManager } from './components/ShowcaseManager'
 import { ScaleMapping } from './components/ScaleMapping'
+import { Diagnostics } from './components/Diagnostics'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
@@ -13,7 +14,7 @@ import { resolveProductImageUrl } from './asset-api'
 
 const SALES_KEY = 'orbi-pos:pilot-sales'
 
-type AppView = 'sale' | 'prices' | 'products' | 'scale' | 'showcase'
+type AppView = 'sale' | 'prices' | 'products' | 'scale' | 'showcase' | 'diagnostics'
 
 function loadSales(): Sale[] {
   try {
@@ -231,7 +232,13 @@ export function App() {
   useEffect(() => saveSales(sales), [sales])
 
   if (window.location.pathname.replace(/\/$/, '').endsWith('/showcase')) {
-    return <Showcase products={products} />
+    return (
+      <Showcase
+        products={products}
+        syncStatus={sync.status}
+        lastUpdatedAt={sync.lastUpdatedAt}
+      />
+    )
   }
 
   return (
@@ -247,6 +254,7 @@ export function App() {
           <button className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Productos</button>
           <button className={view === 'scale' ? 'active' : ''} onClick={() => setView('scale')}>Balanza</button>
           <button className={view === 'showcase' ? 'active' : ''} onClick={() => setView('showcase')}>Showcase</button>
+          <button className={view === 'diagnostics' ? 'active' : ''} onClick={() => setView('diagnostics')}>Estado</button>
         </nav>
         <span className={`status sync-${sync.status}`}><i /> {
           sync.status === 'synced' ? `TV sincronizada · r${sync.revision}`
@@ -275,6 +283,15 @@ export function App() {
       ) : null}
       {view === 'products' ? <ProductAdmin categories={categories} products={products} onChange={(nextProducts) => { void sync.publish(nextProducts) }} /> : null}
       {view === 'scale' ? <ScaleMapping products={products} onChange={(nextProducts) => { void sync.publish(nextProducts) }} /> : null}
+      {view === 'diagnostics' ? (
+        <Diagnostics
+          status={sync.status}
+          revision={sync.revision}
+          lastUpdatedAt={sync.lastUpdatedAt}
+          storeId={sync.storeId}
+          products={products}
+        />
+      ) : null}
       {view === 'showcase' ? (
         <section className="showcase-admin-page">
           <div className="admin-heading">

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CatalogSyncStatus } from '../catalog-sync'
 import type { Product } from '../domain'
 import { resolveProductImageUrl } from '../asset-api'
 import { formatCLP } from '../pos'
@@ -7,6 +8,10 @@ import {
   DEFAULT_SHOWCASE_ROTATION_MS,
   nextShowcasePage,
 } from '../showcase-engine'
+import {
+  previousShowcasePage,
+  showcaseConnectionInfo,
+} from '../showcase-runtime'
 
 function priceUnit(product: Product) {
   if (product.unitType === 'KG') return '/kg'
@@ -15,19 +20,37 @@ function priceUnit(product: Product) {
 }
 
 function ProductVisual({ product, className = '' }: { product: Product; className?: string }) {
+  const imageUrl = resolveProductImageUrl(product.imageUrl)
+
   return (
     <div className={className}>
-      {resolveProductImageUrl(product.imageUrl)
-        ? <img src={resolveProductImageUrl(product.imageUrl)} alt={product.name} />
+      {imageUrl
+        ? <img src={imageUrl} alt={product.name} />
         : <span className="showcase-meat-placeholder">🥩</span>}
     </div>
   )
 }
 
-export function Showcase({ products, preview = false }: { products: Product[]; preview?: boolean }) {
+interface ShowcaseProps {
+  products: Product[]
+  preview?: boolean
+  syncStatus?: CatalogSyncStatus
+  lastUpdatedAt?: string | null
+}
+
+export function Showcase({
+  products,
+  preview = false,
+  syncStatus = 'synced',
+  lastUpdatedAt = null,
+}: ShowcaseProps) {
   const pages = useMemo(() => buildShowcasePages(products), [products])
   const [pageIndex, setPageIndex] = useState(0)
   const [reducedMotion, setReducedMotion] = useState(false)
+  const [paused, setPaused] = useState(false)
+  const [documentVisible, setDocumentVisible] = useState(true)
+  const [controlsVisible, setControlsVisible] = useState(preview)
+  const hideControlsTimer = useRef<number | null>(null)
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -38,21 +61,79 @@ export function Showcase({ products, preview = false }: { products: Product[]; p
   }, [])
 
   useEffect(() => {
+    const update = () => setDocumentVisible(document.visibilityState !== 'hidden')
+    update()
+    document.addEventListener('visibilitychange', update)
+    return () => document.removeEventListener('visibilitychange', update)
+  }, [])
+
+  useEffect(() => {
     if (pageIndex >= pages.length) setPageIndex(0)
   }, [pageIndex, pages.length])
 
   useEffect(() => {
-    if (preview || reducedMotion || pages.length <= 1) return
+    if (preview || paused || reducedMotion || !documentVisible || pages.length <= 1) return
     const timer = window.setInterval(() => {
       setPageIndex((current) => nextShowcasePage(current, pages.length))
     }, DEFAULT_SHOWCASE_ROTATION_MS)
+
     return () => window.clearInterval(timer)
-  }, [pages.length, preview, reducedMotion])
+  }, [documentVisible, pages.length, paused, preview, reducedMotion])
+
+  useEffect(() => {
+    if (preview) {
+      setControlsVisible(true)
+      return
+    }
+
+    function scheduleHide() {
+      setControlsVisible(true)
+      if (hideControlsTimer.current !== null) window.clearTimeout(hideControlsTimer.current)
+      hideControlsTimer.current = window.setTimeout(() => setControlsVisible(false), 2800)
+    }
+
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === 'ArrowRight') {
+        setPageIndex((current) => nextShowcasePage(current, pages.length))
+        scheduleHide()
+      } else if (event.key === 'ArrowLeft') {
+        setPageIndex((current) => previousShowcasePage(current, pages.length))
+        scheduleHide()
+      } else if (event.key === ' ') {
+        event.preventDefault()
+        setPaused((current) => !current)
+        scheduleHide()
+      } else if (event.key.toLowerCase() === 'f') {
+        if (!document.fullscreenElement) {
+          void document.documentElement.requestFullscreen?.()
+        } else {
+          void document.exitFullscreen?.()
+        }
+        scheduleHide()
+      }
+    }
+
+    scheduleHide()
+    window.addEventListener('pointermove', scheduleHide)
+    window.addEventListener('keydown', handleKey)
+
+    return () => {
+      window.removeEventListener('pointermove', scheduleHide)
+      window.removeEventListener('keydown', handleKey)
+      if (hideControlsTimer.current !== null) window.clearTimeout(hideControlsTimer.current)
+    }
+  }, [pages.length, preview])
 
   const page = pages[pageIndex] ?? pages[0]
+  const connection = showcaseConnectionInfo(syncStatus, lastUpdatedAt)
+  const kioskIdle = !preview && !controlsVisible
 
   return (
-    <div className={preview ? 'showcase showcase-preview' : 'showcase'}>
+    <div className={[
+      'showcase',
+      preview ? 'showcase-preview' : 'showcase-kiosk',
+      kioskIdle ? 'kiosk-idle' : '',
+    ].filter(Boolean).join(' ')}>
       <header className="showcase-header">
         <div className="showcase-brand"><span>◉</span><b>ORBI</b> SHOWCASE</div>
         <div className="showcase-business"><small>CARNICERÍA</small><strong>EL CHUNCHITO</strong></div>
@@ -115,8 +196,38 @@ export function Showcase({ products, preview = false }: { products: Product[]; p
         <span>PIDE POR EL CÓDIGO EN PANTALLA</span>
       </footer>
 
+      {!preview && connection.shouldShow ? (
+        <div className={`showcase-connection tone-${connection.tone}`}>
+          <i />
+          <div>
+            <strong>{connection.label}</strong>
+            {connection.detail ? <span>{connection.detail}</span> : null}
+          </div>
+        </div>
+      ) : null}
+
+      {!preview && controlsVisible ? (
+        <div className="showcase-kiosk-tools">
+          <button type="button" onClick={() => setPageIndex((current) => previousShowcasePage(current, pages.length))} aria-label="Anterior">‹</button>
+          <button type="button" onClick={() => setPaused((current) => !current)}>{paused ? '▶' : 'Ⅱ'}</button>
+          <button type="button" onClick={() => setPageIndex((current) => nextShowcasePage(current, pages.length))} aria-label="Siguiente">›</button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!document.fullscreenElement) void document.documentElement.requestFullscreen?.()
+              else void document.exitFullscreen?.()
+            }}
+            aria-label="Pantalla completa"
+          >
+            ⛶
+          </button>
+        </div>
+      ) : null}
+
+      {paused && !preview ? <div className="showcase-paused">Presentación pausada</div> : null}
+
       {pages.length > 1 ? (
-        <div className="showcase-pagination" aria-label="Páginas del Showcase">
+        <div className={`showcase-pagination ${!preview && !controlsVisible ? 'controls-hidden' : ''}`} aria-label="Páginas del Showcase">
           {pages.map((candidate, index) => (
             <button
               key={candidate.id}
