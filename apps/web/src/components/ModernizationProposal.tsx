@@ -5,6 +5,15 @@ import {
   emptyModernizationInputs,
   type ModernizationInputs,
 } from '../proposal-model'
+import {
+  DISCOVERY_STORAGE_KEY,
+  bridgeDiscoveryToProposal,
+  emptyProposalBridgeSnapshot,
+  loadDiscoveryForBridge,
+  loadProposalBridgeSnapshot,
+  saveProposalBridgeSnapshot,
+  type ProposalBridgeResult,
+} from '../proposal-bridge'
 
 const STORAGE_KEY = 'orbi-pos:modernization-proposal'
 
@@ -56,23 +65,131 @@ interface Props {
   presentation?: boolean
 }
 
+interface ProposalState {
+  inputs: ModernizationInputs
+  bridge: ProposalBridgeResult
+}
+
+function initializeProposal(): ProposalState {
+  const bridged = bridgeDiscoveryToProposal(
+    loadInputs(),
+    loadDiscoveryForBridge(),
+    loadProposalBridgeSnapshot(),
+  )
+
+  return {
+    inputs: bridged.inputs,
+    bridge: bridged,
+  }
+}
+
+function bridgeStatusText(bridge: ProposalBridgeResult) {
+  if (bridge.status === 'empty') {
+    return 'Sin datos comerciales en Levantamiento todavía.'
+  }
+
+  if (bridge.status === 'partial') {
+    return `Levantamiento parcial · ${bridge.availableRequired}/${bridge.totalRequired} datos base disponibles.`
+  }
+
+  if (bridge.status === 'manual-overrides') {
+    return `Sincronizado con cambios manuales preservados · ${bridge.preservedManualFields.length} campo(s).`
+  }
+
+  return 'Sistema actual sincronizado desde Levantamiento.'
+}
+
 export function ModernizationProposal({ presentation = false }: Props) {
-  const [inputs, setInputs] = useState<ModernizationInputs>(loadInputs)
+  const [state, setState] = useState<ProposalState>(initializeProposal)
+  const [bridgeNotice, setBridgeNotice] = useState('')
+  const inputs = state.inputs
+  const bridge = state.bridge
   const result = useMemo(() => calculateModernization(inputs), [inputs])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(inputs))
-  }, [inputs])
+    saveProposalBridgeSnapshot(bridge.snapshot)
+  }, [inputs, bridge.snapshot])
+
+  useEffect(() => {
+    function onStorage(event: StorageEvent) {
+      if (event.key !== DISCOVERY_STORAGE_KEY) return
+
+      setState((current) => {
+        const refreshed = bridgeDiscoveryToProposal(
+          current.inputs,
+          loadDiscoveryForBridge(),
+          current.bridge.snapshot,
+        )
+
+        return {
+          inputs: refreshed.inputs,
+          bridge: refreshed,
+        }
+      })
+    }
+
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   function patch<K extends keyof ModernizationInputs>(
     key: K,
     value: ModernizationInputs[K],
   ) {
-    setInputs((current) => ({ ...current, [key]: value }))
+    setState((current) => {
+      const nextInputs = { ...current.inputs, [key]: value }
+      const refreshed = bridgeDiscoveryToProposal(
+        nextInputs,
+        loadDiscoveryForBridge(),
+        current.bridge.snapshot,
+      )
+
+      return {
+        inputs: refreshed.inputs,
+        bridge: refreshed,
+      }
+    })
+  }
+
+  function refreshFromDiscovery() {
+    setState((current) => {
+      const refreshed = bridgeDiscoveryToProposal(
+        current.inputs,
+        loadDiscoveryForBridge(),
+        current.bridge.snapshot,
+      )
+
+      if (refreshed.status === 'empty') {
+        setBridgeNotice('Todavía no hay datos comerciales disponibles en Levantamiento.')
+      } else if (refreshed.preservedManualFields.length) {
+        setBridgeNotice(`Levantamiento actualizado. Se preservaron ${refreshed.preservedManualFields.length} cambio(s) manual(es).`)
+      } else if (refreshed.importedFields.length) {
+        setBridgeNotice(`Actualizado desde Levantamiento · ${refreshed.importedFields.length} campo(s).`)
+      } else {
+        setBridgeNotice('La propuesta ya estaba al día con Levantamiento.')
+      }
+
+      window.setTimeout(() => setBridgeNotice(''), 3200)
+
+      return {
+        inputs: refreshed.inputs,
+        bridge: refreshed,
+      }
+    })
   }
 
   function reset() {
-    setInputs(emptyModernizationInputs)
+    const refreshed = bridgeDiscoveryToProposal(
+      emptyModernizationInputs,
+      loadDiscoveryForBridge(),
+      emptyProposalBridgeSnapshot,
+    )
+
+    setState({
+      inputs: refreshed.inputs,
+      bridge: refreshed,
+    })
   }
 
   return (
@@ -112,8 +229,20 @@ export function ModernizationProposal({ presentation = false }: Props) {
             <Fact state="confirmed" title="RM-60 principal" detail="El personal indica que desde esa balanza actualizan los precios." />
             <Fact state="confirmed" title="SUNMI V2 + Inputsoft" detail="Terminal actual usada para la operación de boletas." />
             <Fact state="pending" title="Incidencia SII" detail="Se reportó que información no estaría llegando como se esperaba; falta diagnosticar la causa exacta." />
-            <Fact state="pending" title="Costo mensual actual" detail="Esperando factura/contrato real para separar arriendo, software y otros cargos." />
-            <Fact state="pending" title="Comisiones actuales" detail="Falta identificar adquirente, tasas y volumen real por medio de pago." />
+            <Fact
+              state={inputs.currentFixedMonthly === null ? 'pending' : 'confirmed'}
+              title="Costo mensual actual"
+              detail={inputs.currentFixedMonthly === null
+                ? 'Esperando factura/contrato real para separar arriendo, software y otros cargos.'
+                : `${formatCLP(inputs.currentFixedMonthly)} / mes · cargado desde evidencia/levantamiento.`}
+            />
+            <Fact
+              state={inputs.currentCardFeePercent === null || inputs.monthlyCardSales === null ? 'pending' : 'confirmed'}
+              title="Comisiones actuales"
+              detail={inputs.currentCardFeePercent === null || inputs.monthlyCardSales === null
+                ? 'Falta completar comisión efectiva y volumen mensual con tarjeta.'
+                : `${inputs.currentCardFeePercent.toLocaleString('es-CL')}% promedio · ${formatCLP(inputs.monthlyCardSales)} en ventas con tarjeta / mes.`}
+            />
           </ul>
         </article>
 
@@ -162,8 +291,32 @@ export function ModernizationProposal({ presentation = false }: Props) {
               ORBI no afirma que la propuesta sea más barata hasta completar los costos del negocio y una cotización vigente.
             </p>
           </div>
-          {!presentation ? <button className="ghost" type="button" onClick={reset}>Limpiar datos</button> : null}
+          {!presentation ? <button className="ghost" type="button" onClick={reset}>Limpiar propuesta</button> : null}
         </div>
+
+        <div className={`proposal-bridge bridge-${bridge.status}`}>
+          <div>
+            <span>{bridge.status === 'synced' ? '✓' : bridge.status === 'manual-overrides' ? '↔' : '↓'}</span>
+            <div>
+              <b>Levantamiento → Propuesta</b>
+              <small>{bridgeStatusText(bridge)}</small>
+              {bridge.snapshot.syncedAt ? (
+                <em>Última revisión: {new Date(bridge.snapshot.syncedAt).toLocaleString('es-CL')}</em>
+              ) : null}
+            </div>
+          </div>
+          {!presentation ? (
+            <button className="ghost" type="button" onClick={refreshFromDiscovery}>
+              Actualizar desde Levantamiento
+            </button>
+          ) : null}
+        </div>
+
+        {bridge.preservedManualFields.length ? (
+          <div className="proposal-bridge-manual">
+            <b>Cambios manuales preservados:</b> {bridge.preservedManualFields.join(' · ')}
+          </div>
+        ) : null}
 
         <div className="modernization-cost-grid">
           <article>
@@ -342,6 +495,7 @@ export function ModernizationProposal({ presentation = false }: Props) {
           La parte tributaria debe validarse con la configuración real del negocio y su proveedor/contador antes de cualquier migración.
         </p>
       </div>
+      {bridgeNotice ? <div className="toast">{bridgeNotice}</div> : null}
     </section>
   )
 }

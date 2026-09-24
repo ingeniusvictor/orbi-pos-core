@@ -33,6 +33,7 @@ The current working slice includes:
 - owner-facing modernization proposal with evidence-aware cost-benefit calculator;
 - structured field discovery for SUNMI/Inputsoft/SII, current costs and the four RM-60 scales;
 - dynamic question pack for Diana plus sanitized discovery JSON export;
+- Discovery → Proposal bridge that reuses verified current costs/fees without overwriting manual corrections;
 - simple daily sales summary.
 
 Only the two prices verified from the supplied El Chunchito RM-60 receipt are preloaded.
@@ -120,7 +121,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-19 Field Discovery & Incident Intake
+**Milestone:** OC-20 Discovery → Proposal Bridge
 
 
 ## TV pilot on Windows
@@ -208,3 +209,12 @@ The admin interface includes **Levantamiento** for capturing operational facts b
 It tracks the SUNMI/Inputsoft/SII incident, current commercial/payment baseline, and the four-scale RM-60 workflow. Unknown answers remain explicitly pending, and the screen generates a short question pack for Diana.
 
 The module intentionally has no fields for passwords, API keys, card data or customer personal information.
+
+
+## Discovery → Proposal bridge
+
+The **Propuesta** screen automatically reads the current commercial baseline from **Levantamiento**.
+
+Current fixed cost, effective card fee and monthly card sales can flow into the owner comparison without being entered twice. A field imported from discovery may continue to refresh while it still equals the previous imported value; manual proposal changes are preserved on later refreshes.
+
+Proposed Point/ORBI costs remain independent assumptions and are never filled from the current-business discovery record.

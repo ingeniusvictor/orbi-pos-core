@@ -3469,3 +3469,108 @@ body:has(.modernization-page.presentation) {
     grid-column: 1;
   }
 }
+
+
+/* ── OC-20 Discovery → Proposal bridge ──────────────────────────── */
+.proposal-bridge {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 13px 14px;
+  border: 1px solid #d9cec8;
+  border-radius: 14px;
+  background: #fbf8f6;
+}
+
+.proposal-bridge > div {
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.proposal-bridge > div > span {
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eee8e4;
+  color: #6f625d;
+  font-weight: 950;
+}
+
+.proposal-bridge > div > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.proposal-bridge b {
+  font-size: 12px;
+}
+
+.proposal-bridge small,
+.proposal-bridge em {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.proposal-bridge em {
+  font-style: normal;
+}
+
+.proposal-bridge.bridge-synced {
+  border-color: #cce0c6;
+  background: #f3faef;
+}
+
+.proposal-bridge.bridge-synced > div > span {
+  background: #dff0d9;
+  color: #315428;
+}
+
+.proposal-bridge.bridge-partial {
+  border-color: #ead49c;
+  background: #fff8e5;
+}
+
+.proposal-bridge.bridge-partial > div > span {
+  background: #f8e9be;
+  color: #765b16;
+}
+
+.proposal-bridge.bridge-manual-overrides {
+  border-color: #c7d6ea;
+  background: #f3f8ff;
+}
+
+.proposal-bridge.bridge-manual-overrides > div > span {
+  background: #dfeaf8;
+  color: #3d5c83;
+}
+
+.proposal-bridge-manual {
+  margin: -4px 0 12px;
+  padding: 9px 11px;
+  border-left: 3px solid #7594bd;
+  border-radius: 8px;
+  background: #f5f8fc;
+  color: #536273;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .proposal-bridge {
+    display: grid;
+  }
+
+  .proposal-bridge > button {
+    width: 100%;
+  }
+}
