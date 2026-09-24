@@ -34,6 +34,7 @@ function ProductVisual({ product, className = '' }: { product: Product; classNam
 interface ShowcaseProps {
   products: Product[]
   preview?: boolean
+  demo?: boolean
   syncStatus?: CatalogSyncStatus
   lastUpdatedAt?: string | null
 }
@@ -41,6 +42,7 @@ interface ShowcaseProps {
 export function Showcase({
   products,
   preview = false,
+  demo = false,
   syncStatus = 'synced',
   lastUpdatedAt = null,
 }: ShowcaseProps) {
@@ -133,11 +135,18 @@ export function Showcase({
       'showcase',
       preview ? 'showcase-preview' : 'showcase-kiosk',
       kioskIdle ? 'kiosk-idle' : '',
+      demo ? 'showcase-demo' : '',
     ].filter(Boolean).join(' ')}>
+      {demo ? (
+        <div className="showcase-demo-watermark">
+          DEMO VISUAL · PRECIOS ILUSTRATIVOS · NO CORRESPONDEN AL CATÁLOGO REAL
+        </div>
+      ) : null}
+
       <header className="showcase-header">
         <div className="showcase-brand"><span>◉</span><b>ORBI</b> SHOWCASE</div>
         <div className="showcase-business"><small>CARNICERÍA</small><strong>EL CHUNCHITO</strong></div>
-        <div className="showcase-tagline">MIRA · ELIGE · PIDE POR CÓDIGO</div>
+        <div className="showcase-tagline">{demo ? 'CONCEPTO DE PRESENTACIÓN · ORBI' : 'MIRA · ELIGE · PIDE POR CÓDIGO'}</div>
       </header>
 
       {!page ? (
@@ -157,7 +166,9 @@ export function Showcase({
                 <div className="hero-code">PIDE <b>COD {page.product.code}</b></div>
                 <h1>{page.product.name}</h1>
                 <div className="hero-price">{formatCLP(page.product.price)}<small>{priceUnit(page.product)}</small></div>
-                <p className="hero-helper">Indica el código al personal para una atención más rápida.</p>
+                <p className="hero-helper">{demo
+                  ? 'Ejemplo visual para demostrar cómo se verá el catálogo digital en la TV.'
+                  : 'Indica el código al personal para una atención más rápida.'}</p>
               </div>
               <div className="hero-meat">
                 <ProductVisual product={page.product} className="hero-visual" />
@@ -193,10 +204,10 @@ export function Showcase({
         <span>◉ CARNICERÍA EL CHUNCHITO</span>
         <span>🥩 CORTES Y PRODUCTOS</span>
         <span>✦ PRECIOS ACTUALIZADOS</span>
-        <span>PIDE POR EL CÓDIGO EN PANTALLA</span>
+        <span>{demo ? 'DEMO · DATOS ILUSTRATIVOS' : 'PIDE POR EL CÓDIGO EN PANTALLA'}</span>
       </footer>
 
-      {!preview && connection.shouldShow ? (
+      {!preview && !demo && connection.shouldShow ? (
         <div className={`showcase-connection tone-${connection.tone}`}>
           <i />
           <div>
