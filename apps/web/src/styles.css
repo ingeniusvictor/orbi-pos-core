@@ -2355,3 +2355,222 @@ button { cursor: pointer; }
     min-width: 0;
   }
 }
+
+
+/* ── OC-17 four DIGI RM-60 fleet registry ───────────────────────── */
+.scale-fleet-panel {
+  margin: 0 0 20px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.scale-fleet-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.scale-fleet-head h3 {
+  margin: 4px 0 5px;
+  font-size: 24px;
+}
+
+.scale-fleet-head p:not(.eyebrow) {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.scale-fleet-actions {
+  min-width: 290px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.scale-fleet-actions label {
+  flex: 1;
+  display: grid;
+  gap: 5px;
+}
+
+.scale-fleet-actions label > span,
+.scale-device-fields label > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.scale-fleet-actions select,
+.scale-device-fields input,
+.scale-device-fields select,
+.scale-device-fields textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #d9cec8;
+  border-radius: 9px;
+  padding: 8px 9px;
+  background: white;
+  color: var(--ink);
+  outline: none;
+}
+
+.scale-device-fields textarea {
+  resize: vertical;
+}
+
+.scale-fleet-actions select:focus,
+.scale-device-fields input:focus,
+.scale-device-fields select:focus,
+.scale-device-fields textarea:focus {
+  border-color: #b76056;
+  box-shadow: 0 0 0 3px rgba(166,37,32,.08);
+}
+
+.scale-sync-warning {
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+  margin: 14px 0;
+  padding: 11px 13px;
+  border: 1px solid #ead6a5;
+  border-radius: 12px;
+  background: #fff8e8;
+  color: #6f6037;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.scale-sync-warning b {
+  color: #765b16;
+}
+
+.scale-fleet-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scale-device {
+  padding: 15px;
+  border: 1px solid #e6ddd8;
+  border-radius: 16px;
+  background: #fffdfa;
+}
+
+.scale-device.principal {
+  border-color: #c98d84;
+  box-shadow: inset 4px 0 var(--brand);
+}
+
+.scale-device-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.scale-device-title > div {
+  display: grid;
+  gap: 2px;
+}
+
+.scale-device-title span {
+  color: var(--brand);
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .1em;
+}
+
+.scale-device-title h4 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.scale-device-title > b {
+  color: #5d5551;
+  font-size: 11px;
+}
+
+.scale-device-badge {
+  width: max-content;
+  max-width: 100%;
+  margin: -2px 0 10px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.scale-device-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.scale-device-fields label {
+  display: grid;
+  gap: 4px;
+}
+
+.scale-device-notes {
+  grid-column: 1 / -1;
+}
+
+.mapping-section-heading {
+  margin: 26px 0 12px;
+}
+
+.mapping-section-heading h3 {
+  margin: 4px 0;
+  font-size: 22px;
+}
+
+.mapping-section-heading p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .scale-fleet-head {
+    display: grid;
+  }
+
+  .scale-fleet-actions {
+    min-width: 0;
+  }
+
+  .scale-fleet-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .scale-fleet-actions {
+    display: grid;
+  }
+
+  .scale-sync-warning {
+    display: grid;
+  }
+
+  .scale-device-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .scale-device-notes {
+    grid-column: 1;
+  }
+}

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Product } from '../domain'
 import { formatCLP } from '../pos'
 import { applyPluPatches, buildRm60MappingCsv } from '../scale-mapping'
+import { ScaleFleetPanel } from './ScaleFleetPanel'
 
 interface Props {
   products: Product[]
@@ -76,6 +77,16 @@ export function ScaleMapping({ products, onChange }: Props) {
           <button className="primary save-prices" disabled={!changedIds.length} onClick={save}>
             Guardar {changedIds.length ? changedIds.length : ''} {changedIds.length === 1 ? 'cambio' : 'cambios'}
           </button>
+        </div>
+      </div>
+
+      <ScaleFleetPanel />
+
+      <div className="mapping-section-heading">
+        <div>
+          <p className="eyebrow">Catálogo / producto</p>
+          <h3>Mapa de códigos y PLU</h3>
+          <p>El PLU pertenece al producto. La identidad de cada una de las cuatro balanzas se documenta por separado arriba.</p>
         </div>
       </div>
 

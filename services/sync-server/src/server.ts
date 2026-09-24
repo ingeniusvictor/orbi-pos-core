@@ -8,6 +8,7 @@ import { PaymentStore } from './payment-store.js'
 import { createPaymentRuntime } from './payment-providers.js'
 import { PaymentService } from './payment-service.js'
 import type { PaymentOrderStatus } from './payment-types.js'
+import { ScaleFleetStore } from './scale-fleet-store.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -19,6 +20,7 @@ const store = new CatalogStore(DATA_DIR)
 const assetStore = new AssetStore(DATA_DIR)
 const paymentRuntime = createPaymentRuntime(process.env)
 const paymentService = new PaymentService(new PaymentStore(DATA_DIR), paymentRuntime)
+const scaleFleetStore = new ScaleFleetStore(DATA_DIR)
 const app = express()
 const startedAt = new Date().toISOString()
 
@@ -36,6 +38,7 @@ app.get('/api/health', (_req, res) => {
       sharedImages: true,
       payments: true,
       paymentProvider: paymentRuntime.providerId,
+      scaleFleet: true,
     },
   })
 })
@@ -85,6 +88,25 @@ app.put(
     }
   },
 )
+
+app.get('/api/stores/:storeId/scales/fleet', async (req, res) => {
+  try {
+    return res.json(await scaleFleetStore.get(req.params.storeId))
+  } catch (error) {
+    return res.status(400).json({ code: 'SCALE_FLEET_READ_FAILED', message: (error as Error).message })
+  }
+})
+
+app.put('/api/stores/:storeId/scales/fleet', async (req, res) => {
+  try {
+    return res.json(await scaleFleetStore.put(req.params.storeId, {
+      syncBehavior: req.body?.syncBehavior,
+      devices: req.body?.devices,
+    }))
+  } catch (error) {
+    return res.status(400).json({ code: 'SCALE_FLEET_SAVE_FAILED', message: (error as Error).message })
+  }
+})
 
 app.get('/api/stores/:storeId/payments/runtime', (req, res) => {
   return res.json({
