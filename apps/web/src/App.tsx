@@ -313,6 +313,7 @@ function OperationalApp() {
           <button className={view === 'showcase' ? 'active' : ''} onClick={() => setView('showcase')}>Showcase</button>
           <button className={view === 'discovery' ? 'active' : ''} onClick={() => setView('discovery')}>Levantamiento</button>
           <button className={view === 'proposal' ? 'active' : ''} onClick={() => setView('proposal')}>Propuesta</button>
+          <button className="nav-pilot" onClick={() => window.open('/piloto', '_blank', 'noopener,noreferrer')}>Piloto ↗</button>
           <button className={view === 'diagnostics' ? 'active' : ''} onClick={() => setView('diagnostics')}>Estado</button>
         </nav>
         <span className={`status sync-${sync.status}`}><i /> {
