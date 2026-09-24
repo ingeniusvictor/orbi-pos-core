@@ -12,6 +12,7 @@ import { PaymentCenter } from './components/PaymentCenter'
 import { ModernizationProposal } from './components/ModernizationProposal'
 import { FieldDiscovery } from './components/FieldDiscovery'
 import { PilotDemoHub } from './components/PilotDemoHub'
+import { OwnerDemoSession } from './components/OwnerDemoSession'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
@@ -393,6 +394,10 @@ export function App() {
 
   if (path.endsWith('/modernizacion')) {
     return <ModernizationProposal presentation />
+  }
+
+  if (path.endsWith('/piloto/sesion')) {
+    return <OwnerDemoSession />
   }
 
   if (path.endsWith('/piloto')) {
