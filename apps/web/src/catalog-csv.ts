@@ -98,7 +98,19 @@ function parseUnit(value: string): UnitType | null {
 }
 
 function sameProduct(a: Product, b: Product): boolean {
-  return JSON.stringify(a) === JSON.stringify(b)
+  return a.id === b.id
+    && a.code === b.code
+    && a.name === b.name
+    && a.categoryId === b.categoryId
+    && a.price === b.price
+    && a.unitType === b.unitType
+    && (a.plu ?? '') === (b.plu ?? '')
+    && (a.imageUrl ?? '') === (b.imageUrl ?? '')
+    && (a.promoText ?? '') === (b.promoText ?? '')
+    && a.active === b.active
+    && a.showOnShowcase === b.showOnShowcase
+    && a.featured === b.featured
+    && a.sortOrder === b.sortOrder
 }
 
 export function buildCatalogCsv(products: Product[]): string {
