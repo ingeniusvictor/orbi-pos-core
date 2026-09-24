@@ -7,7 +7,9 @@ import { Showcase } from './components/Showcase'
 import { ShowcaseManager } from './components/ShowcaseManager'
 import { ScaleMapping } from './components/ScaleMapping'
 import { Diagnostics } from './components/Diagnostics'
-import type { CartLine, PaymentMethod, PriceChange, Product, Sale, UnitType } from './domain'
+import { PaymentDialog } from './components/PaymentDialog'
+import { PaymentCenter } from './components/PaymentCenter'
+import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
 import { resolveProductImageUrl } from './asset-api'
@@ -15,7 +17,7 @@ import { demoProducts } from './demo-catalog'
 
 const SALES_KEY = 'orbi-pos:pilot-sales'
 
-type AppView = 'sale' | 'prices' | 'products' | 'scale' | 'showcase' | 'diagnostics'
+type AppView = 'sale' | 'prices' | 'products' | 'scale' | 'payments' | 'showcase' | 'diagnostics'
 
 function loadSales(): Sale[] {
   try {
@@ -105,6 +107,7 @@ function SaleView({ products, sales, setSales }: {
   const [cart, setCart] = useState<CartLine[]>([])
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
   const [notice, setNotice] = useState('')
+  const [paymentOpen, setPaymentOpen] = useState(false)
 
   const visibleProducts = useMemo(
     () => products.filter((product) => product.active && (categoryId === 'all' || product.categoryId === categoryId)),
@@ -116,13 +119,24 @@ function SaleView({ products, sales, setSales }: {
   const todayTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0)
   const total = cartTotal(cart)
 
-  function checkout() {
-    if (!cart.length) return
-    const sale = completeSale(cart, paymentMethod)
+  function recordSale(payment?: SalePayment) {
+    const sale = completeSale(cart, paymentMethod, payment)
     setSales((current) => [sale, ...current])
     setCart([])
+    setPaymentOpen(false)
     setNotice(`Venta registrada · ${formatCLP(sale.total)} · ${paymentLabel(paymentMethod)}`)
     window.setTimeout(() => setNotice(''), 3200)
+  }
+
+  function checkout() {
+    if (!cart.length) return
+
+    if (paymentMethod === 'debit' || paymentMethod === 'credit') {
+      setPaymentOpen(true)
+      return
+    }
+
+    recordSale()
   }
 
   return (
@@ -204,7 +218,14 @@ function SaleView({ products, sales, setSales }: {
                 </button>
               ))}
             </div>
-            <button className="primary checkout-button" onClick={checkout} disabled={!cart.length}>Cobrar {cart.length ? formatCLP(total) : ''}</button>
+            <button className="primary checkout-button" onClick={checkout} disabled={!cart.length}>
+              {paymentMethod === 'debit' || paymentMethod === 'credit'
+                ? `Cobrar con Point ${cart.length ? formatCLP(total) : ''}`
+                : `Registrar cobro ${cart.length ? formatCLP(total) : ''}`}
+            </button>
+            {paymentMethod === 'debit' || paymentMethod === 'credit' ? (
+              <small className="point-checkout-note">La venta se cerrará solo cuando Point confirme el pago.</small>
+            ) : null}
           </div>
         </aside>
       </main>
@@ -214,6 +235,22 @@ function SaleView({ products, sales, setSales }: {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onAdd={(product, quantity) => setCart((current) => [...current, makeCartLine(product, quantity)])}
+        />
+      ) : null}
+      {paymentOpen && (paymentMethod === 'debit' || paymentMethod === 'credit') ? (
+        <PaymentDialog
+          amount={total}
+          method={paymentMethod}
+          onClose={() => setPaymentOpen(false)}
+          onApproved={(order) => {
+            recordSale({
+              provider: order.provider,
+              orderId: order.id,
+              providerOrderId: order.providerOrderId,
+              externalReference: order.externalReference,
+              terminalId: order.terminalId,
+            })
+          }}
         />
       ) : null}
       {notice ? <div className="toast">{notice}</div> : null}
@@ -254,6 +291,7 @@ function OperationalApp() {
           <button className={view === 'prices' ? 'active' : ''} onClick={() => setView('prices')}>Precios</button>
           <button className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Productos</button>
           <button className={view === 'scale' ? 'active' : ''} onClick={() => setView('scale')}>Balanza</button>
+          <button className={view === 'payments' ? 'active' : ''} onClick={() => setView('payments')}>Pagos</button>
           <button className={view === 'showcase' ? 'active' : ''} onClick={() => setView('showcase')}>Showcase</button>
           <button className={view === 'diagnostics' ? 'active' : ''} onClick={() => setView('diagnostics')}>Estado</button>
         </nav>
@@ -284,6 +322,7 @@ function OperationalApp() {
       ) : null}
       {view === 'products' ? <ProductAdmin categories={categories} products={products} onChange={(nextProducts) => { void sync.publish(nextProducts) }} /> : null}
       {view === 'scale' ? <ScaleMapping products={products} onChange={(nextProducts) => { void sync.publish(nextProducts) }} /> : null}
+      {view === 'payments' ? <PaymentCenter /> : null}
       {view === 'diagnostics' ? (
         <Diagnostics
           status={sync.status}

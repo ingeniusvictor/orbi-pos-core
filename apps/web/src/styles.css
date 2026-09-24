@@ -1907,3 +1907,451 @@ button { cursor: pointer; }
     min-height: 44px;
   }
 }
+
+
+/* ── OC-13/15 payment core + Point checkout ─────────────────────── */
+.point-checkout-note {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.payment-backdrop {
+  z-index: 80;
+}
+
+.payment-modal {
+  width: min(560px, calc(100% - 28px));
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  padding: 22px;
+  border-radius: 22px;
+  background: #fffdfb;
+  box-shadow: 0 30px 90px rgba(25, 14, 10, .35);
+}
+
+.payment-terminal-head {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.payment-terminal-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: #1f78ff;
+  color: white;
+  font-size: 28px;
+  box-shadow: 0 10px 24px rgba(31,120,255,.23);
+}
+
+.payment-terminal-head h2 {
+  margin: 3px 0 0;
+  font-size: 20px;
+}
+
+.terminal-ready,
+.terminal-pending {
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.terminal-ready {
+  color: #2f5c26;
+  background: #edf7e9;
+  border: 1px solid #cee5c7;
+}
+
+.terminal-pending {
+  color: #7a5b18;
+  background: #fff5d8;
+  border: 1px solid #ead49c;
+}
+
+.payment-amount {
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  margin: 22px 0 16px;
+  padding: 20px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(31,120,255,.13), transparent 38%),
+    #f5f7fb;
+}
+
+.payment-amount small,
+.payment-amount span {
+  color: #687181;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.payment-amount strong {
+  color: #172033;
+  font-size: clamp(40px, 8vw, 64px);
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.payment-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid #e7e0db;
+  border-radius: 14px;
+  background: white;
+}
+
+.payment-status > i {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: #c69a28;
+  box-shadow: 0 0 0 5px rgba(198,154,40,.11);
+}
+
+.payment-status-processed > i {
+  background: #4a8a37;
+  box-shadow: 0 0 0 5px rgba(74,138,55,.11);
+}
+
+.payment-status-failed > i,
+.payment-status-canceled > i,
+.payment-status-expired > i {
+  background: #c4493d;
+  box-shadow: 0 0 0 5px rgba(196,73,61,.11);
+}
+
+.payment-status h3 {
+  margin: 0 0 3px;
+  font-size: 16px;
+}
+
+.payment-status p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.payment-trace {
+  display: grid;
+  grid-template-columns: 95px minmax(0, 1fr);
+  gap: 6px 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f8f4f1;
+  font-size: 10px;
+}
+
+.payment-trace span {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.payment-trace b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #544943;
+}
+
+.mock-point {
+  margin-top: 13px;
+  padding: 13px;
+  border: 1px dashed #9ebce9;
+  border-radius: 14px;
+  background: #f3f8ff;
+}
+
+.mock-point p {
+  margin: 0 0 10px;
+  color: #536273;
+  font-size: 10px;
+}
+
+.mock-point > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.mock-point button {
+  min-height: 38px;
+  border: 1px solid #c8d4e7;
+  border-radius: 10px;
+  padding: 0 11px;
+  background: white;
+  color: #425166;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.mock-point .mock-approve {
+  border-color: #459237;
+  background: #4a9c3c;
+  color: white;
+}
+
+.payment-modal-actions {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.payment-modal-actions .primary {
+  min-height: 42px;
+  padding: 0 15px;
+}
+
+.payment-modal-actions > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.payment-footnote {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .payment-terminal-head {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .payment-terminal-head > :last-child {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .payment-trace {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ── OC-14 Point terminal registry / payment center ─────────────── */
+.payment-runtime-ready,
+.payment-runtime-pending {
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: white;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.payment-runtime-ready i,
+.payment-runtime-pending i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.payment-runtime-ready i { background: #4a8a37; }
+.payment-runtime-pending i { background: #c79a20; }
+
+.payment-runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.payment-runtime-card {
+  min-height: 132px;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.payment-runtime-card small {
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.payment-runtime-card strong {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.payment-runtime-card span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.payment-demo-banner {
+  margin-bottom: 12px;
+  padding: 11px 13px;
+  border: 1px solid #b8d1f4;
+  border-radius: 12px;
+  background: #f3f8ff;
+  color: #4d6179;
+  font-size: 11px;
+}
+
+.payment-demo-banner.warning {
+  border-color: #ead49c;
+  background: #fff8e5;
+  color: #715c27;
+}
+
+.payment-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 9px;
+  margin: 12px 0;
+}
+
+.payment-summary-row > div {
+  display: grid;
+  gap: 3px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.payment-summary-row small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.payment-summary-row strong {
+  font-size: 23px;
+}
+
+.payment-orders {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: var(--surface);
+}
+
+.payment-order-row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.3fr) 175px 115px 90px 125px minmax(160px, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 9px 13px;
+  border-bottom: 1px solid #eee5e0;
+  font-size: 10px;
+}
+
+.payment-order-row:last-child { border-bottom: 0; }
+
+.payment-order-head {
+  min-height: 40px;
+  background: #f4efeb;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.payment-order-row > strong:first-child {
+  overflow-wrap: anywhere;
+  color: #514640;
+}
+
+.payment-order-state {
+  width: max-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-weight: 850;
+}
+
+.payment-order-state.state-processed {
+  color: #315428;
+  background: #edf7e9;
+}
+
+.payment-order-state.state-created,
+.payment-order-state.state-at_terminal {
+  color: #5b5c7e;
+  background: #f0f1fb;
+}
+
+.payment-order-state.state-failed,
+.payment-order-state.state-canceled,
+.payment-order-state.state-expired {
+  color: #8b2f27;
+  background: #fff0ed;
+}
+
+.payment-order-state.state-refunded {
+  color: #765b16;
+  background: #fff6dc;
+}
+
+.payment-orders-empty {
+  padding: 30px 16px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 11px;
+}
+
+@media (max-width: 1050px) {
+  .payment-runtime-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .payment-order-row {
+    grid-template-columns: minmax(180px, 1.3fr) 150px 100px 95px 110px;
+  }
+
+  .payment-order-row > :last-child {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .payment-runtime-grid,
+  .payment-summary-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .payment-order-head {
+    display: none;
+  }
+
+  .payment-order-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .payment-order-row > * {
+    min-width: 0;
+  }
+}
