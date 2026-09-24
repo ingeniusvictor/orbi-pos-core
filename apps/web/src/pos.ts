@@ -1,4 +1,4 @@
-import type { CartLine, PaymentMethod, Product, Sale } from './domain'
+import type { CartLine, PaymentMethod, Product, Sale, SalePayment } from './domain'
 
 /**
  * The DIGI RM-60 pilot receipt rounds line totals to the nearest CLP 10.
@@ -28,13 +28,18 @@ export function makeCartLine(product: Product, quantity: number): CartLine {
   }
 }
 
-export function completeSale(lines: CartLine[], paymentMethod: PaymentMethod): Sale {
+export function completeSale(
+  lines: CartLine[],
+  paymentMethod: PaymentMethod,
+  payment?: SalePayment,
+): Sale {
   return {
-    id: `sale-${Date.now()}`,
+    id: payment?.externalReference ?? `sale-${Date.now()}`,
     createdAt: new Date().toISOString(),
     lines,
     paymentMethod,
     total: cartTotal(lines),
+    payment,
   }
 }
 
