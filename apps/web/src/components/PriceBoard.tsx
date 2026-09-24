@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Category, PriceChange, Product } from '../domain'
-import { applyPricePatches } from '../catalog-service'
+import { applyPricePatches, revertLatestPriceBatch } from '../catalog-service'
 import { formatCLP } from '../pos'
 
 interface Props {
@@ -15,6 +15,8 @@ export function PriceBoard({ categories, products, history, onCommit }: Props) {
   const [categoryId, setCategoryId] = useState('all')
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [bulkPercent, setBulkPercent] = useState('')
+  const [confirmUndo, setConfirmUndo] = useState(false)
+  const [rollbackMessage, setRollbackMessage] = useState('')
 
   const visible = useMemo(() => products.filter((product) => {
     const matchesCategory = categoryId === 'all' || product.categoryId === categoryId
@@ -26,6 +28,11 @@ export function PriceBoard({ categories, products, history, onCommit }: Props) {
 
     return matchesCategory && matchesQuery && product.active
   }), [categoryId, products, query])
+
+  const latestBatch = useMemo(() => {
+    const changedAt = history[0]?.changedAt
+    return changedAt ? history.filter((change) => change.changedAt === changedAt) : []
+  }, [history])
 
   const patches = visible
     .map((product) => {
@@ -67,6 +74,27 @@ export function PriceBoard({ categories, products, history, onCommit }: Props) {
     onCommit(result.products, [...result.history, ...history])
     setDrafts({})
     setBulkPercent('')
+    setConfirmUndo(false)
+    setRollbackMessage('')
+  }
+
+  function undoLatest() {
+    const result = revertLatestPriceBatch(products, history)
+    setConfirmUndo(false)
+
+    if (!result.revertedCount) {
+      setRollbackMessage(result.skippedCount
+        ? 'No se deshizo nada porque esos productos ya tienen precios más nuevos.'
+        : 'No hay una operación de precios para deshacer.')
+      return
+    }
+
+    onCommit(result.products, [...result.history, ...history])
+    setRollbackMessage(
+      result.skippedCount
+        ? `Se restauraron ${result.revertedCount} precios. ${result.skippedCount} se omitieron porque ya habían cambiado.`
+        : `Se restauraron ${result.revertedCount} precio${result.revertedCount === 1 ? '' : 's'}.`,
+    )
   }
 
   return (
@@ -138,6 +166,36 @@ export function PriceBoard({ categories, products, history, onCommit }: Props) {
           )
         })}
       </div>
+
+      {latestBatch.length ? (
+        <div className="price-rollback-card">
+          <div>
+            <p className="eyebrow">Red de seguridad</p>
+            <h3>Última operación: {latestBatch.length} precio{latestBatch.length === 1 ? '' : 's'}</h3>
+            <span>{new Date(latestBatch[0].changedAt).toLocaleString('es-CL')}</span>
+          </div>
+          <div className="price-rollback-examples">
+            {latestBatch.slice(0, 3).map((change) => (
+              <span key={change.id}>
+                <b>{change.productName}</b> {formatCLP(change.previousPrice)} → {formatCLP(change.nextPrice)}
+              </span>
+            ))}
+            {latestBatch.length > 3 ? <small>+ {latestBatch.length - 3} cambios más</small> : null}
+          </div>
+          <div className="price-rollback-actions">
+            {confirmUndo ? (
+              <>
+                <button className="ghost" type="button" onClick={() => setConfirmUndo(false)}>Cancelar</button>
+                <button className="rollback-confirm" type="button" onClick={undoLatest}>Confirmar deshacer</button>
+              </>
+            ) : (
+              <button className="ghost" type="button" onClick={() => setConfirmUndo(true)}>Deshacer última operación</button>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {rollbackMessage ? <div className="rollback-message">{rollbackMessage}</div> : null}
 
       <div className="history-card">
         <h3>Últimos cambios</h3>
