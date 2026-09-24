@@ -9,6 +9,18 @@ export interface RemoteCatalogSnapshot {
   products: Product[]
 }
 
+export interface OrbiSystemHealth {
+  ok: boolean
+  service: string
+  mode: string
+  uptimeSeconds?: number
+  startedAt?: string
+  capabilities?: {
+    sharedCatalog?: boolean
+    sharedImages?: boolean
+  }
+}
+
 const API_BASE = (import.meta.env.VITE_ORBI_SYNC_URL ?? '').replace(/\/$/, '')
 export const ORBI_STORE_ID = import.meta.env.VITE_ORBI_STORE_ID ?? 'el-chunchito'
 
@@ -22,11 +34,15 @@ export class RemoteCatalogConflict extends Error {
   }
 }
 
+export async function fetchSystemHealth(signal?: AbortSignal): Promise<OrbiSystemHealth> {
+  const response = await fetch(orbiApi('/api/health'), { signal, cache: 'no-store' })
+  if (!response.ok) throw new Error(`Health check failed: ${response.status}`)
+  return await response.json() as OrbiSystemHealth
+}
+
 export async function detectCatalogSync(signal?: AbortSignal): Promise<boolean> {
   try {
-    const response = await fetch(orbiApi('/api/health'), { signal, cache: 'no-store' })
-    if (!response.ok) return false
-    const body = await response.json() as { service?: string }
+    const body = await fetchSystemHealth(signal)
     return body.service === 'orbi-pos-sync'
   } catch {
     return false
