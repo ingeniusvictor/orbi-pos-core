@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Product } from '../domain'
+import { resolveProductImageUrl } from '../asset-api'
 import { formatCLP } from '../pos'
 import {
   buildShowcasePages,
@@ -16,8 +17,8 @@ function priceUnit(product: Product) {
 function ProductVisual({ product, className = '' }: { product: Product; className?: string }) {
   return (
     <div className={className}>
-      {product.imageUrl
-        ? <img src={product.imageUrl} alt={product.name} />
+      {resolveProductImageUrl(product.imageUrl)
+        ? <img src={resolveProductImageUrl(product.imageUrl)} alt={product.name} />
         : <span className="showcase-meat-placeholder">🥩</span>}
     </div>
   )
