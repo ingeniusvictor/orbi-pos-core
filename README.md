@@ -9,8 +9,8 @@ The first pilot is **ORBI POS — El Chunchito**, focused on proving that a mode
 The current working slice includes:
 
 - visual product categories;
-- master product catalog;
-- customer-facing product codes;
+- master product catalog with safe metadata editing and search;
+- validated unique customer-facing product codes;
 - optional DIGI RM-60 PLU mapping field;
 - fast price editing and price history;
 - full-screen `/showcase` TV surface;
@@ -110,7 +110,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-08 TV Kiosk & Pilot Resilience
+**Milestone:** OC-09 Master Catalog Integrity
 
 
 ## TV pilot on Windows
