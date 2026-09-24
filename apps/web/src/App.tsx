@@ -13,6 +13,7 @@ import { ModernizationProposal } from './components/ModernizationProposal'
 import { FieldDiscovery } from './components/FieldDiscovery'
 import { PilotDemoHub } from './components/PilotDemoHub'
 import { OwnerDemoSession } from './components/OwnerDemoSession'
+import { OwnerPilotSummary } from './components/OwnerPilotSummary'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
@@ -398,6 +399,10 @@ export function App() {
 
   if (path.endsWith('/piloto/sesion')) {
     return <OwnerDemoSession />
+  }
+
+  if (path.endsWith('/piloto/resumen')) {
+    return <OwnerPilotSummary products={loadCatalog()} />
   }
 
   if (path.endsWith('/piloto')) {
