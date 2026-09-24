@@ -11,6 +11,7 @@ import type { CartLine, PaymentMethod, PriceChange, Product, Sale, UnitType } fr
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
 import { resolveProductImageUrl } from './asset-api'
+import { demoProducts } from './demo-catalog'
 
 const SALES_KEY = 'orbi-pos:pilot-sales'
 
@@ -220,7 +221,7 @@ function SaleView({ products, sales, setSales }: {
   )
 }
 
-export function App() {
+function OperationalApp() {
   const [view, setView] = useState<AppView>('sale')
   const [products, setProducts] = useState<Product[]>(loadCatalog)
   const [history, setHistory] = useState<PriceChange[]>(loadPriceHistory)
@@ -296,7 +297,10 @@ export function App() {
         <section className="showcase-admin-page">
           <div className="admin-heading">
             <div><p className="eyebrow">Pantalla cliente</p><h2>ORBI Showcase</h2><p>Esta vista usa exactamente los mismos precios del catálogo maestro.</p></div>
-            <button className="primary" onClick={() => window.open('/showcase', '_blank', 'noopener,noreferrer')}>Abrir pantalla completa ↗</button>
+            <div className="showcase-heading-actions">
+              <button className="ghost" onClick={() => window.open('/showcase-demo', '_blank', 'noopener,noreferrer')}>Abrir demo visual ↗</button>
+              <button className="primary showcase-open-button" onClick={() => window.open('/showcase', '_blank', 'noopener,noreferrer')}>Abrir pantalla real ↗</button>
+            </div>
           </div>
           <ShowcaseManager products={products} onCommit={(nextProducts) => { void sync.publish(nextProducts) }} />
           <Showcase products={products} preview />
@@ -304,4 +308,26 @@ export function App() {
       ) : null}
     </div>
   )
+}
+
+
+function DemoShowcasePage() {
+  return (
+    <Showcase
+      products={demoProducts}
+      demo
+      syncStatus="synced"
+      lastUpdatedAt={null}
+    />
+  )
+}
+
+export function App() {
+  const path = window.location.pathname.replace(/\/$/, '')
+
+  if (path.endsWith('/showcase-demo')) {
+    return <DemoShowcasePage />
+  }
+
+  return <OperationalApp />
 }

@@ -14,6 +14,7 @@ The current working slice includes:
 - optional DIGI RM-60 PLU mapping field;
 - fast price editing, append-only price history and guarded one-step rollback;
 - full-screen `/showcase` TV surface;
+- isolated `/showcase-demo` presentation route with permanently marked illustrative data;
 - rotating Showcase hero/product-board presentation engine;
 - Showcase content controls for TV visibility, featured products, order and promo text;
 - shared JPG/PNG/WebP product-image library served to POS and TV;
@@ -110,7 +111,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-10 Price Change Safety
+**Milestone:** OC-11 Safe Visual Demo Mode
 
 
 ## TV pilot on Windows
@@ -122,3 +123,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\windows\start-tv-pilot.ps1
 ~~~
 
 The admin interface also includes an **Estado** section for checking catalog synchronization, image-library availability, Showcase readiness and RM-60 PLU mapping progress.
+
+
+## Visual demo
+
+Until the real El Chunchito catalog is available, the owner-facing concept can be shown at:
+
+~~~text
+http://HOST:8787/showcase-demo
+~~~
+
+That route uses isolated illustrative products/prices and is permanently marked as DEMO. It never publishes those examples into the real master catalog.
