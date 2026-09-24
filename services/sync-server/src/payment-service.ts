@@ -10,7 +10,8 @@ import type { PaymentRuntimeConfig } from './payment-providers.js'
 
 const MOCK_TRANSITIONS: Record<PaymentOrderStatus, PaymentOrderStatus[]> = {
   created: ['at_terminal', 'processed', 'failed', 'canceled', 'expired'],
-  at_terminal: ['processed', 'failed', 'canceled', 'expired'],
+  at_terminal: ['action_required', 'processed', 'failed', 'canceled', 'expired'],
+  action_required: [],
   processed: ['refunded'],
   failed: [],
   canceled: [],
@@ -125,6 +126,25 @@ export class PaymentService {
     }
 
     return current
+  }
+
+  async reconcileProviderOrder(
+    storeId: string,
+    providerOrderId: string,
+  ): Promise<PaymentOrderRecord> {
+    const current = await this.store.findByProviderOrderId(storeId, providerOrderId)
+    if (!current) throw new Error('Provider payment order is not known to ORBI')
+    if (current.provider !== 'mercadopago') {
+      throw new Error('Provider reconciliation is only available for Mercado Pago orders')
+    }
+
+    const providerState = await this.runtime.provider.getOrder(current.providerOrderId)
+    return await this.store.put(storeId, {
+      ...current,
+      status: providerState.status,
+      statusDetail: providerState.statusDetail,
+      updatedAt: this.now().toISOString(),
+    })
   }
 
   async cancel(storeId: string, id: string): Promise<PaymentOrderRecord> {
