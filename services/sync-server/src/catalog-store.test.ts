@@ -66,4 +66,19 @@ describe('CatalogStore', () => {
       { ...pernil, id: 'otro', name: 'Otro', code: '101' },
     ], 0)).rejects.toThrow('Duplicate customer code')
   })
+
+  it('rejects duplicate RM-60 PLUs', async () => {
+    const store = await makeStore()
+    await expect(store.put('el-chunchito', [
+      { ...pernil, plu: '0047' },
+      { ...pernil, id: 'otro', code: '102', name: 'Otro', plu: '0047' },
+    ], 0)).rejects.toThrow('Duplicate PLU')
+  })
+
+  it('rejects malformed customer codes', async () => {
+    const store = await makeStore()
+    await expect(store.put('el-chunchito', [
+      { ...pernil, code: 'CODIGO CON ESPACIOS' },
+    ], 0)).rejects.toThrow('Invalid customer code')
+  })
 })
