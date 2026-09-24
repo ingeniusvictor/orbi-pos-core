@@ -78,7 +78,10 @@ function mergeNumber(
     return { value: current, imported: false, manual: false }
   }
 
-  if (current === null || current === previousImported) {
+  if (
+    current === previousImported
+    || (current === null && previousImported === null)
+  ) {
     return {
       value: incoming,
       imported: current !== incoming,
@@ -102,7 +105,10 @@ function mergeText(
     return { value: current, imported: false, manual: false }
   }
 
-  if (!current.trim() || current === previousImported) {
+  if (
+    current === previousImported
+    || (!current.trim() && !previousImported.trim())
+  ) {
     return {
       value: incoming,
       imported: current !== incoming,
