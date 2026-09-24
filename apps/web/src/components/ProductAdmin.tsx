@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react'
 import { createProductId } from '../catalog-service'
 import type { Category, Product, UnitType } from '../domain'
 import { formatCLP } from '../pos'
+import { CatalogCsvTools } from './CatalogCsvTools'
 
 interface Props {
   categories: Category[]
@@ -74,6 +75,12 @@ export function ProductAdmin({ categories, products, onChange }: Props) {
         <input placeholder="PLU balanza (opcional)" value={plu} onChange={(e) => setPlu(e.target.value)} />
         <button className="primary" type="submit">Agregar producto</button>
       </form>
+
+      <CatalogCsvTools
+        products={products}
+        categoryIds={sellableCategories.map((category) => category.id)}
+        onImport={onChange}
+      />
 
       <div className="admin-products">
         {products.map((product) => (
