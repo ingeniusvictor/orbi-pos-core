@@ -61,7 +61,7 @@ export function calculateModernization(
     input.pointDeviceCost,
     input.showcaseTvCost,
     input.miniPcCost,
-  ].filter(validMoney).reduce((sum, value) => sum + (value ?? 0), 0)
+  ].reduce<number>((sum, value) => sum + (validMoney(value) ? value : 0), 0)
 
   if (missing.length) {
     return {
