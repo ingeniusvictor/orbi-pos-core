@@ -27,6 +27,8 @@ The current working slice includes:
 - backend Payment Core with mock Point Smart 2 simulator;
 - dormant Mercado Pago Point Orders adapter with backend-only credentials;
 - terminal/provider registry and payment operations center;
+- Point Webhook HMAC verifier + authoritative provider-order reconciliation;
+- `action_required` safety state requiring terminal review;
 - card checkout state machine that only closes sales after payment status `processed`;
 - simple daily sales summary.
 
@@ -115,7 +117,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-17 Four DIGI RM-60 Fleet Registry
+**Milestone:** OC-16 Secure Point Reconciliation + OC-17 RM-60 Fleet
 
 
 ## TV pilot on Windows
@@ -172,3 +174,12 @@ The current shop topology is represented as four DIGI RM-60 units. RM60-01 is ma
 The relationship between the four devices remains explicitly **unverified** until field observation confirms whether RM60-01 distributes catalog/price changes or whether the scales maintain independent data.
 
 No ORBI command is sent to the scales by OC-17.
+
+
+## Payment webhook boundary
+
+The local ORBI server is not a public Mercado Pago Webhook target.
+
+OC-16 prepares a public-relay architecture and includes Mercado Pago HMAC verification plus authoritative order reconciliation. A future public relay must validate the webhook and persist/deduplicate the event, while the shop ORBI confirms the final state using Mercado Pago `GET /v1/orders/{id}` before treating a card sale as paid.
+
+The `action_required` Point state is treated as manual attention: ORBI does not close the sale automatically.

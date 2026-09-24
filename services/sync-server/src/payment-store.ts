@@ -62,6 +62,16 @@ export class PaymentStore {
     return data.orders.find((order) => order.clientRequestId === clientRequestId) ?? null
   }
 
+  async findByProviderOrderId(
+    storeId: string,
+    providerOrderId: string,
+  ): Promise<PaymentOrderRecord | null> {
+    const data = await this.read(storeId)
+    return data.orders.find((order) =>
+      order.providerOrderId.toLowerCase() === providerOrderId.toLowerCase(),
+    ) ?? null
+  }
+
   async put(storeId: string, order: PaymentOrderRecord): Promise<PaymentOrderRecord> {
     const data = await this.read(storeId)
     const index = data.orders.findIndex((candidate) => candidate.id === order.id)

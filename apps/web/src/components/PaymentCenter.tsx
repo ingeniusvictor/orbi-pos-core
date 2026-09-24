@@ -11,6 +11,7 @@ function statusLabel(status: PaymentOrder['status']) {
   const labels: Record<PaymentOrder['status'], string> = {
     created: 'Creada',
     at_terminal: 'En terminal',
+    action_required: 'Revisar terminal',
     processed: 'Aprobada',
     failed: 'Fallida',
     canceled: 'Cancelada',
@@ -60,6 +61,7 @@ export function PaymentCenter() {
   const summary = useMemo(() => ({
     processed: orders.filter((order) => order.status === 'processed').length,
     pending: orders.filter((order) => ['created', 'at_terminal'].includes(order.status)).length,
+    attention: orders.filter((order) => order.status === 'action_required').length,
     failed: orders.filter((order) => ['failed', 'canceled', 'expired'].includes(order.status)).length,
   }), [orders])
 
@@ -123,6 +125,7 @@ export function PaymentCenter() {
         <div><small>Órdenes recientes</small><strong>{orders.length}</strong></div>
         <div><small>Aprobadas</small><strong>{summary.processed}</strong></div>
         <div><small>Pendientes</small><strong>{summary.pending}</strong></div>
+        <div><small>Revisar terminal</small><strong>{summary.attention}</strong></div>
         <div><small>Fallidas/canceladas</small><strong>{summary.failed}</strong></div>
       </div>
 

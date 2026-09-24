@@ -28,6 +28,9 @@ function statusCopy(order: PaymentOrder | null) {
   if (order.status === 'at_terminal') {
     return ['Esperando al cliente', 'La orden está en la terminal. Inserta, acerca o desliza la tarjeta.']
   }
+  if (order.status === 'action_required') {
+    return ['Revisar terminal', 'Mercado Pago requiere confirmar el resultado directamente en la Point. ORBI no cerrará la venta automáticamente.']
+  }
   if (order.status === 'processed') {
     return ['Pago aprobado', 'Mercado Pago confirmó la operación.']
   }
@@ -66,7 +69,7 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
         return
       }
 
-      if (['failed', 'canceled', 'expired', 'refunded'].includes(nextOrder.status)) {
+      if (['action_required', 'failed', 'canceled', 'expired', 'refunded'].includes(nextOrder.status)) {
         setWorking(false)
         return
       }
@@ -119,9 +122,9 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
 
   const [title, detail] = statusCopy(order)
   const isMock = runtime?.provider === 'mock'
-  const finalFailure = Boolean(order && ['failed', 'canceled', 'expired'].includes(order.status))
+  const finalFailure = Boolean(order && ['action_required', 'failed', 'canceled', 'expired'].includes(order.status))
 
-  async function transition(status: 'at_terminal' | 'processed' | 'failed' | 'expired') {
+  async function transition(status: 'at_terminal' | 'action_required' | 'processed' | 'failed' | 'expired') {
     if (!order) return
     setWorking(true)
     setError('')
@@ -195,6 +198,7 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
                 <button type="button" onClick={() => { void transition('at_terminal') }} disabled={working}>Terminal recibió orden</button>
               ) : null}
               <button className="mock-approve" type="button" onClick={() => { void transition('processed') }} disabled={working}>✓ Aprobar pago</button>
+              <button type="button" onClick={() => { void transition('action_required') }} disabled={working}>Requiere revisión</button>
               <button type="button" onClick={() => { void transition('failed') }} disabled={working}>Rechazar</button>
               <button type="button" onClick={() => { void transition('expired') }} disabled={working}>Expirar</button>
             </div>

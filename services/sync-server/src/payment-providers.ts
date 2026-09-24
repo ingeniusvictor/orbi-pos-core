@@ -14,6 +14,7 @@ function mapStatus(value: unknown): PaymentOrderStatus {
   const allowed: PaymentOrderStatus[] = [
     'created',
     'at_terminal',
+    'action_required',
     'processed',
     'failed',
     'canceled',

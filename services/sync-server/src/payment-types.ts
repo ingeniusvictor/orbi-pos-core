@@ -3,6 +3,7 @@ export type PaymentProviderId = 'mock' | 'mercadopago'
 export type PaymentOrderStatus =
   | 'created'
   | 'at_terminal'
+  | 'action_required'
   | 'processed'
   | 'failed'
   | 'canceled'
@@ -62,5 +63,5 @@ export interface PaymentProvider {
 }
 
 export function isFinalPaymentStatus(status: PaymentOrderStatus): boolean {
-  return ['processed', 'failed', 'canceled', 'expired', 'refunded'].includes(status)
+  return ['action_required', 'processed', 'failed', 'canceled', 'expired', 'refunded'].includes(status)
 }
