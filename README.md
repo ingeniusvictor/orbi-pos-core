@@ -18,6 +18,7 @@ The current working slice includes:
 - Showcase content controls for TV visibility, featured products, order and promo text;
 - shared JPG/PNG/WebP product-image library served to POS and TV;
 - safe catalog CSV import/export with preview;
+- unattended TV kiosk controls, automatic recovery cues and admin diagnostics;
 - shared LAN catalog synchronization for a separate TV/browser;
 - local cache/fallback when the sync server is unavailable;
 - weight entry and RM-60-compatible CLP 10 subtotal rounding;
@@ -109,4 +110,15 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-07 Shared Product Image Library
+**Milestone:** OC-08 TV Kiosk & Pilot Resilience
+
+
+## TV pilot on Windows
+
+For a Windows mini-PC connected to the display, OC-08 includes a one-command pilot launcher:
+
+~~~powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\windows\start-tv-pilot.ps1
+~~~
+
+The admin interface also includes an **Estado** section for checking catalog synchronization, image-library availability, Showcase readiness and RM-60 PLU mapping progress.
