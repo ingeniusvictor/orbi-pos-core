@@ -5,8 +5,8 @@ import {
   type CardPaymentMethod,
   type PaymentOrderRecord,
   type PaymentOrderStatus,
-  type PaymentRuntimeConfig,
 } from './payment-types.js'
+import type { PaymentRuntimeConfig } from './payment-providers.js'
 
 const MOCK_TRANSITIONS: Record<PaymentOrderStatus, PaymentOrderStatus[]> = {
   created: ['at_terminal', 'processed', 'failed', 'canceled', 'expired'],
