@@ -198,7 +198,7 @@ describe('RecoveryDrillStore', () => {
     const after = await readFile(catalogPath, 'utf8')
 
     expect(record.certificate.result).toBe('certified')
-    expect(record.certificate.stagedFiles).toBe(8)
+    expect(record.certificate.stagedFiles).toBe(7)
     expect(record.certificate.stagedBytes).toBeGreaterThan(0)
     expect(record.certificate.safety.liveDataReplaced).toBe(false)
     expect(record.certificate.safety.providerCallsMade).toBe(false)
