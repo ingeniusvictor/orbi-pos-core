@@ -398,6 +398,15 @@ export function updateMigrationStep(
     throw new Error('Normal migration steps are locked while rollback is required')
   }
 
+  if (
+    (definition.phase === 'controlled-pilot'
+      || definition.phase === 'stabilization'
+      || definition.phase === 'closeout')
+    && state.decision !== 'go'
+  ) {
+    throw new Error('Controlled-pilot execution steps are locked until GO is selected')
+  }
+
   if (status !== 'pending' && !evidenceReady(evidence)) {
     throw new Error('Passed/failed migration steps require an evidence note')
   }
