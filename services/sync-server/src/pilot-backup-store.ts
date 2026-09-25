@@ -244,15 +244,20 @@ export function validatePilotBackupBundle(
   if (typeof bundle.label !== 'string' || bundle.label.trim().length < 2 || bundle.label.length > 120) {
     throw new Error('Pilot backup label must contain 2–120 characters')
   }
+  scanModuleValue(bundle.label, 'label')
 
   if (!bundle.modules || typeof bundle.modules !== 'object' || Array.isArray(bundle.modules)) {
     throw new Error('Pilot backup modules must be an object')
   }
 
   const moduleEntries = Object.entries(bundle.modules)
-  if (!moduleEntries.length) throw new Error('Pilot backup must contain at least one module')
-  if (moduleEntries.length > PILOT_BACKUP_MODULES.length) {
-    throw new Error('Pilot backup contains too many modules')
+  if (moduleEntries.length !== PILOT_BACKUP_MODULES.length) {
+    throw new Error('Pilot backup must contain every protected module')
+  }
+  for (const requiredModule of PILOT_BACKUP_MODULES) {
+    if (!(requiredModule in bundle.modules)) {
+      throw new Error(`Pilot backup is missing protected module: ${requiredModule}`)
+    }
   }
 
   for (const [moduleName, moduleValue] of moduleEntries) {
