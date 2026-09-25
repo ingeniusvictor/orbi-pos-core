@@ -54,7 +54,7 @@ function emptyMethods(): DailyCloseMethodBreakdown {
 }
 
 function closeId(businessDate: string, uuid: string) {
-  return `CLOSE-${businessDate.replace(/-/g, '')}-${uuid.replace(/-/g, '').slice(0, 12)}`
+  return `CLOSE-${businessDate.replace(/-/g, '')}-${uuid.replace(/-/g, '')}`
 }
 
 export class DailyCloseService {
