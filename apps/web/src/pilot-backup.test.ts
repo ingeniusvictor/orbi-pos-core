@@ -83,6 +83,40 @@ describe('pilot backup bundle', () => {
       .toThrow('Campo sensible')
   })
 
+  it('allows ORBI timestamp IDs that are not payment-card data', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(
+      PILOT_BACKUP_STORAGE_KEYS.evidenceLedger,
+      JSON.stringify({
+        version: 'orbi-pos-evidence-ledger/v1',
+        entries: [{
+          id: 'EVD-20260925130000-ABC123',
+          occurredAt: '2026-09-25T10:00',
+          createdAt: '2026-09-25T13:00:00.000Z',
+          updatedAt: '2026-09-25T13:00:00.000Z',
+          type: 'observation',
+          system: 'rm60',
+          severity: 'info',
+          status: 'open',
+          title: 'Flujo observado',
+          summary: 'Se observó flujo real de balanza.',
+          actor: 'Operador',
+          evidenceReference: '',
+          sourceContext: 'Terreno',
+          history: [],
+        }],
+      }),
+    )
+
+    expect(() => buildPilotBackupBundle(storage, {
+      storeId: 'el-chunchito',
+      label: 'Respaldo con IDs',
+      source: 'manual',
+      serverReferences: refs,
+      createdAt: '2026-09-25T04:10:00.000Z',
+    })).not.toThrow()
+  })
+
   it('restores only the selected local modules', () => {
     const source = new MemoryStorage()
     source.setItem(
