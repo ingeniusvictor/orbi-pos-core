@@ -496,6 +496,7 @@ export function sanitizePilotBackupBundle(
   ) {
     throw new Error('Etiqueta de respaldo inválida')
   }
+  scanBackupModule(candidate.label, 'label')
 
   const rawModules = objectValue(candidate.modules)
   const unknownModules = Object.keys(rawModules).filter(
@@ -572,6 +573,7 @@ export function buildPilotBackupBundle(
   if (label.length < 2 || label.length > 120) {
     throw new Error('La etiqueta debe tener entre 2 y 120 caracteres')
   }
+  scanBackupModule(label, 'label')
 
   return {
     format: PILOT_BACKUP_FORMAT,
