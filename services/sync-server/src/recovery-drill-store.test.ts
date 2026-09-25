@@ -12,6 +12,7 @@ import { EvidenceAttachmentStore } from './evidence-attachment-store.js'
 import { PilotBackupStore, PILOT_BACKUP_FORMAT } from './pilot-backup-store.js'
 import { RecoveryDrillStore } from './recovery-drill-store.js'
 import { ScaleFleetStore } from './scale-fleet-store.js'
+import { SaleStore } from './sale-store.js'
 import { ServerDisasterRecoveryStore } from './server-disaster-recovery-store.js'
 
 const dirs: string[] = []
@@ -81,6 +82,32 @@ async function seedRecoverableStore(dataDir: string) {
     JSON.stringify({ orders: [] }, null, 2),
     'utf8',
   )
+
+  await new SaleStore(dataDir).append('el-chunchito', {
+    id: 'SALE-20260925-abcdef123456',
+    storeId: 'el-chunchito',
+    clientRequestId: 'sale-request-drill-001',
+    createdAt: '2026-09-25T05:02:00.000Z',
+    recordedAt: '2026-09-25T05:02:01.000Z',
+    source: 'orbi-pos-web',
+    lines: [{
+      id: 'pernil-drill-001',
+      productId: 'pernil',
+      name: 'Pernil',
+      unitPrice: 4898,
+      quantity: 1.146,
+      unitType: 'KG',
+      subtotal: 5610,
+    }],
+    paymentMethod: 'cash',
+    total: 5610,
+    audit: [{
+      event: 'created',
+      at: '2026-09-25T05:02:01.000Z',
+      actor: 'orbi-pos-web',
+      detail: 'server_authoritative',
+    }],
+  })
 
   await new ScaleFleetStore(
     dataDir,
@@ -198,7 +225,7 @@ describe('RecoveryDrillStore', () => {
     const after = await readFile(catalogPath, 'utf8')
 
     expect(record.certificate.result).toBe('certified')
-    expect(record.certificate.stagedFiles).toBe(7)
+    expect(record.certificate.stagedFiles).toBe(8)
     expect(record.certificate.stagedBytes).toBeGreaterThan(0)
     expect(record.certificate.safety.liveDataReplaced).toBe(false)
     expect(record.certificate.safety.providerCallsMade).toBe(false)
@@ -208,6 +235,7 @@ describe('RecoveryDrillStore', () => {
     const byId = new Map(record.certificate.components.map((item) => [item.id, item]))
     expect(byId.get('catalog')?.status).toBe('pass')
     expect(byId.get('payments')?.status).toBe('pass')
+    expect(byId.get('sales')?.status).toBe('pass')
     expect(byId.get('scale-fleet')?.status).toBe('pass')
     expect(byId.get('product-assets')?.status).toBe('pass')
     expect(byId.get('evidence-attachments')?.status).toBe('pass')

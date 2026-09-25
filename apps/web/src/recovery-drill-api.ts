@@ -23,6 +23,7 @@ export interface RecoveryDrillComponent {
   id:
     | 'catalog'
     | 'payments'
+    | 'sales'
     | 'scale-fleet'
     | 'product-assets'
     | 'evidence-attachments'

@@ -24,6 +24,7 @@ import {
 const componentLabels: Record<string, string> = {
   catalog: 'Catálogo + precios',
   payments: 'Payment Core audit',
+  sales: 'Ledger de ventas',
   'scale-fleet': 'Fleet DIGI RM-60',
   'product-assets': 'Imágenes de productos',
   'evidence-attachments': 'Evidencia OC-27',
@@ -113,6 +114,7 @@ export function ServerDisasterRecovery() {
     () => [
       'Catálogo y auditoría de precios',
       'Payment Core: registros históricos, sin credenciales',
+      'Ledger servidor de ventas completadas',
       'Configuración documentada de las 4 RM-60',
       'Imágenes JPG/PNG/WebP del catálogo',
       'Fotos/PDF + metadata de evidencia OC-27',
@@ -269,7 +271,7 @@ export function ServerDisasterRecovery() {
           </article>
           <article>
             <span>COMPONENTES</span>
-            <strong>{latest?.components.length ?? 6}</strong>
+            <strong>{latest?.components.length ?? 7}</strong>
             <small>servidor allowlisted</small>
           </article>
           <article>

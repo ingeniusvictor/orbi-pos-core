@@ -98,6 +98,20 @@ When `payments.json` is present:
 
 The drill never instantiates a payment provider runtime and does not call Mercado Pago.
 
+### Server-authoritative sales
+
+When `sales.json` is present:
+
+- parse the sales ledger;
+- verify store identity and client request identity;
+- verify sale lines and CLP-10 subtotal math;
+- verify total equals line totals;
+- verify card sales contain provider trace structure;
+- reject provider traces on cash/transfer records;
+- reopen through `SaleStore`.
+
+The drill does not call a payment provider.
+
 ### DIGI RM-60 fleet
 
 When `scale-fleet.json` is present:

@@ -13,6 +13,8 @@ import { EvidenceAttachmentStore } from './evidence-attachment-store.js'
 import { PilotBackupStore } from './pilot-backup-store.js'
 import { ServerDisasterRecoveryStore } from './server-disaster-recovery-store.js'
 import { RecoveryDrillStore } from './recovery-drill-store.js'
+import { SaleStore } from './sale-store.js'
+import { SaleService } from './sale-service.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -23,7 +25,10 @@ const DATA_DIR = process.env.ORBI_POS_DATA_DIR
 const store = new CatalogStore(DATA_DIR)
 const assetStore = new AssetStore(DATA_DIR)
 const paymentRuntime = createPaymentRuntime(process.env)
-const paymentService = new PaymentService(new PaymentStore(DATA_DIR), paymentRuntime)
+const paymentStore = new PaymentStore(DATA_DIR)
+const paymentService = new PaymentService(paymentStore, paymentRuntime)
+const saleStore = new SaleStore(DATA_DIR)
+const saleService = new SaleService(saleStore, paymentStore)
 const scaleFleetStore = new ScaleFleetStore(DATA_DIR)
 const evidenceAttachmentStore = new EvidenceAttachmentStore(DATA_DIR)
 const pilotBackupStore = new PilotBackupStore(DATA_DIR)
@@ -51,6 +56,7 @@ app.get('/api/health', (_req, res) => {
       pilotBackups: true,
       disasterRecovery: true,
       recoveryDrills: true,
+      serverSalesLedger: true,
     },
   })
 })
@@ -398,6 +404,53 @@ app.put('/api/stores/:storeId/scales/fleet', async (req, res) => {
     }))
   } catch (error) {
     return res.status(400).json({ code: 'SCALE_FLEET_SAVE_FAILED', message: (error as Error).message })
+  }
+})
+
+app.get('/api/stores/:storeId/sales', async (req, res) => {
+  try {
+    const limit = Number(req.query.limit ?? 200)
+    return res.json(await saleService.list(req.params.storeId, limit))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'SALE_LIST_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.get('/api/stores/:storeId/sales/:saleId', async (req, res) => {
+  try {
+    const sale = await saleService.get(
+      req.params.storeId,
+      req.params.saleId,
+    )
+    if (!sale) return res.status(404).json({ code: 'SALE_NOT_FOUND' })
+    return res.json(sale)
+  } catch (error) {
+    return res.status(400).json({
+      code: 'SALE_READ_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.post('/api/stores/:storeId/sales', async (req, res) => {
+  try {
+    const sale = await saleService.create(req.params.storeId, {
+      clientRequestId: req.body?.clientRequestId,
+      createdAt: req.body?.createdAt,
+      lines: req.body?.lines,
+      paymentMethod: req.body?.paymentMethod,
+      total: req.body?.total,
+      payment: req.body?.payment,
+    })
+    return res.status(201).json(sale)
+  } catch (error) {
+    return res.status(409).json({
+      code: 'SALE_CREATE_FAILED',
+      message: (error as Error).message,
+    })
   }
 })
 

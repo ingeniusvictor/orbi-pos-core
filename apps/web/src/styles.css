@@ -10542,3 +10542,243 @@ body:has(.modernization-page.presentation) {
     grid-column: 1;
   }
 }
+
+
+/* ── OC-31 server-authoritative sales ledger ──────────────────── */
+.payment-ledger-critical {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #d29b8f;
+  border-radius: 12px;
+  background: #fff0ec;
+}
+
+.payment-ledger-critical > span {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #f4d4cc;
+  color: #8d3c31;
+  font-weight: 950;
+}
+
+.payment-ledger-critical b {
+  color: #7a3028;
+  font-size: 10px;
+}
+
+.payment-ledger-critical p {
+  margin: 4px 0;
+  color: #6c514b;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.payment-ledger-critical small {
+  color: #8a493f;
+  font-size: 7px;
+  overflow-wrap: anywhere;
+}
+
+.sales-ledger-page {
+  padding: 22px;
+}
+
+.sales-ledger-heading {
+  align-items: flex-start;
+}
+
+.sales-ledger-heading p {
+  max-width: 760px;
+}
+
+.sales-ledger-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.sales-ledger-stats article {
+  min-height: 94px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.sales-ledger-stats span {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+.sales-ledger-stats strong {
+  font-size: 23px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.sales-ledger-stats small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.legacy-sales-warning,
+.sales-ledger-error {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 13px;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.legacy-sales-warning {
+  border: 1px solid #e0c38d;
+  background: #fff8e7;
+}
+
+.legacy-sales-warning > span {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #f0dfb8;
+  font-weight: 950;
+}
+
+.legacy-sales-warning > div {
+  flex: 1;
+}
+
+.legacy-sales-warning b,
+.sales-ledger-error b {
+  font-size: 9px;
+}
+
+.legacy-sales-warning p {
+  margin: 3px 0 0;
+  color: #6c5d4d;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.sales-ledger-error {
+  border: 1px solid #dfb7af;
+  background: #fff0ed;
+  color: #78372f;
+}
+
+.sales-ledger-error span {
+  color: #725d58;
+  font-size: 8px;
+}
+
+.sales-ledger-table-wrap {
+  margin-top: 13px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.sales-ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+.sales-ledger-table th,
+.sales-ledger-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #eee6e2;
+  text-align: left;
+  vertical-align: top;
+}
+
+.sales-ledger-table th {
+  color: var(--muted);
+  background: #f8f4f1;
+  font-size: 7px;
+  font-weight: 950;
+  letter-spacing: .07em;
+}
+
+.sales-ledger-table td {
+  font-size: 9px;
+}
+
+.sales-ledger-table td > b,
+.sales-ledger-payment b {
+  display: block;
+  font-size: 8px;
+  overflow-wrap: anywhere;
+}
+
+.sales-ledger-table td > small,
+.sales-ledger-payment small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 7px;
+  overflow-wrap: anywhere;
+}
+
+.sales-ledger-payment {
+  display: grid;
+  gap: 1px;
+}
+
+.sales-ledger-manual {
+  display: inline-flex;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: #eee9e6;
+  color: #655b56;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.sales-ledger-empty {
+  margin-top: 13px;
+  min-height: 220px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+@media (max-width: 900px) {
+  .sales-ledger-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .legacy-sales-warning {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 620px) {
+  .sales-ledger-page {
+    padding: 12px;
+  }
+
+  .sales-ledger-stats {
+    grid-template-columns: 1fr;
+  }
+}

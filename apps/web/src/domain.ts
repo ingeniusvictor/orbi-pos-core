@@ -52,11 +52,23 @@ export interface SalePayment {
   terminalId: string
 }
 
+export interface SaleAuditEvent {
+  event: 'created'
+  at: string
+  actor: 'orbi-pos-web'
+  detail: 'server_authoritative'
+}
+
 export interface Sale {
   id: string
+  storeId?: string
+  clientRequestId?: string
   createdAt: string
+  recordedAt?: string
+  source?: 'orbi-pos-web'
   lines: CartLine[]
   paymentMethod: PaymentMethod
   total: number
   payment?: SalePayment
+  audit?: SaleAuditEvent[]
 }

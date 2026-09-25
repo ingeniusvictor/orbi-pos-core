@@ -17,6 +17,7 @@ import { EvidenceAttachmentStore } from './evidence-attachment-store.js'
 import { PaymentStore } from './payment-store.js'
 import { PilotBackupStore } from './pilot-backup-store.js'
 import { ScaleFleetStore } from './scale-fleet-store.js'
+import { SaleStore } from './sale-store.js'
 import {
   ServerDisasterRecoveryStore,
   isAllowedServerDrPath,
@@ -48,6 +49,7 @@ export interface RecoveryDrillComponent {
   id:
     | 'catalog'
     | 'payments'
+    | 'sales'
     | 'scale-fleet'
     | 'product-assets'
     | 'evidence-attachments'
@@ -477,6 +479,114 @@ export class RecoveryDrillStore {
       } catch (error) {
         components.push(component('payments', 'fail', 1, paymentFile.size, (error as Error).message))
         checks.push(check('payments-domain', 'Payment Core histórico recuperable', 'fail', (error as Error).message))
+      }
+    }
+
+    const salesFile = fileMap.get('sales.json')
+    if (!salesFile) {
+      components.push(component('sales', 'not_present', 0, 0, 'sales.json is not present in this archive.'))
+    } else {
+      try {
+        const raw = await readFile(path.join(stagedStoreDir, 'sales.json'))
+        const parsed = parseJson(raw, 'sales.json')
+        if (!Array.isArray(parsed.sales)) throw new Error('sales ledger is not an array')
+
+        for (const [index, candidate] of parsed.sales.entries()) {
+          if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+            throw new Error(`invalid sale record at index ${index}`)
+          }
+          const sale = candidate as Record<string, unknown>
+          if (sale.storeId !== storeId) throw new Error(`sale storeId mismatch at index ${index}`)
+          if (typeof sale.id !== 'string' || !sale.id.startsWith('SALE-')) {
+            throw new Error(`invalid sale id at index ${index}`)
+          }
+          if (typeof sale.clientRequestId !== 'string' || !sale.clientRequestId) {
+            throw new Error(`sale clientRequestId missing at index ${index}`)
+          }
+          if (!Array.isArray(sale.lines) || !sale.lines.length) {
+            throw new Error(`sale lines missing at index ${index}`)
+          }
+          if (!Number.isInteger(sale.total) || Number(sale.total) <= 0) {
+            throw new Error(`invalid sale total at index ${index}`)
+          }
+          if (!['cash', 'debit', 'credit', 'transfer'].includes(String(sale.paymentMethod))) {
+            throw new Error(`invalid sale payment method at index ${index}`)
+          }
+
+          let computedTotal = 0
+          const lineIds = new Set<string>()
+          for (const [lineIndex, rawLine] of sale.lines.entries()) {
+            if (!rawLine || typeof rawLine !== 'object' || Array.isArray(rawLine)) {
+              throw new Error(`invalid sale line ${index}:${lineIndex}`)
+            }
+            const line = rawLine as Record<string, unknown>
+            if (typeof line.id !== 'string' || lineIds.has(line.id)) {
+              throw new Error(`invalid/duplicate sale line id ${index}:${lineIndex}`)
+            }
+            lineIds.add(line.id)
+            if (!Number.isInteger(line.unitPrice) || Number(line.unitPrice) < 0) {
+              throw new Error(`invalid sale unitPrice ${index}:${lineIndex}`)
+            }
+            if (
+              typeof line.quantity !== 'number'
+              || !Number.isFinite(line.quantity)
+              || line.quantity <= 0
+            ) {
+              throw new Error(`invalid sale quantity ${index}:${lineIndex}`)
+            }
+            if (!Number.isInteger(line.subtotal) || Number(line.subtotal) < 0) {
+              throw new Error(`invalid sale subtotal ${index}:${lineIndex}`)
+            }
+            const expectedSubtotal = Math.round(
+              Number(line.unitPrice) * line.quantity / 10,
+            ) * 10
+            if (Number(line.subtotal) !== expectedSubtotal) {
+              throw new Error(`sale subtotal mismatch ${index}:${lineIndex}`)
+            }
+            computedTotal += Number(line.subtotal)
+          }
+
+          if (computedTotal !== Number(sale.total)) {
+            throw new Error(`sale total mismatch at index ${index}`)
+          }
+
+          const isCard = sale.paymentMethod === 'debit' || sale.paymentMethod === 'credit'
+          if (isCard) {
+            if (!sale.payment || typeof sale.payment !== 'object' || Array.isArray(sale.payment)) {
+              throw new Error(`card sale payment trace missing at index ${index}`)
+            }
+            const payment = sale.payment as Record<string, unknown>
+            for (const field of ['provider', 'orderId', 'providerOrderId', 'externalReference', 'terminalId']) {
+              if (typeof payment[field] !== 'string' || !payment[field]) {
+                throw new Error(`card sale payment trace field ${field} missing at index ${index}`)
+              }
+            }
+          } else if (sale.payment !== undefined) {
+            throw new Error(`non-card sale contains provider trace at index ${index}`)
+          }
+        }
+
+        const sales = await new SaleStore(sandboxDataDir).list(storeId, 1000)
+        if (sales.length !== parsed.sales.length) {
+          throw new Error(`SaleStore reopened ${sales.length}/${parsed.sales.length} sale(s)`)
+        }
+        const total = sales.reduce((sum, sale) => sum + sale.total, 0)
+        components.push(component(
+          'sales',
+          'pass',
+          1,
+          salesFile.size,
+          `SaleStore reopened ${sales.length} immutable sale(s), total CLP ${total}, without provider calls.`,
+        ))
+        checks.push(check(
+          'sales-domain',
+          'Ledger de ventas recuperable',
+          'pass',
+          'Server-authoritative sales reopened from reconstructed sales.json.',
+        ))
+      } catch (error) {
+        components.push(component('sales', 'fail', 1, salesFile.size, (error as Error).message))
+        checks.push(check('sales-domain', 'Ledger de ventas recuperable', 'fail', (error as Error).message))
       }
     }
 

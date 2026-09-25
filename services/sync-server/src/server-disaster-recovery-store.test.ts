@@ -59,6 +59,37 @@ async function seedStore(dataDir: string) {
     'utf8',
   )
   await writeFile(
+    path.join(root, 'sales.json'),
+    JSON.stringify({
+      sales: [{
+        id: 'SALE-20260925-abcdef123456',
+        storeId: 'el-chunchito',
+        clientRequestId: 'sale-request-001',
+        createdAt: '2026-09-25T04:05:00.000Z',
+        recordedAt: '2026-09-25T04:05:01.000Z',
+        source: 'orbi-pos-web',
+        lines: [{
+          id: 'pernil-001',
+          productId: 'pernil',
+          name: 'Pernil',
+          unitPrice: 4898,
+          quantity: 1.146,
+          unitType: 'KG',
+          subtotal: 5610,
+        }],
+        paymentMethod: 'cash',
+        total: 5610,
+        audit: [{
+          event: 'created',
+          at: '2026-09-25T04:05:01.000Z',
+          actor: 'orbi-pos-web',
+          detail: 'server_authoritative',
+        }],
+      }],
+    }),
+    'utf8',
+  )
+  await writeFile(
     path.join(root, 'scale-fleet.json'),
     JSON.stringify({
       storeId: 'el-chunchito',
@@ -113,6 +144,7 @@ describe('ServerDisasterRecoveryStore', () => {
 
     expect(paths).toContain('catalog.json')
     expect(paths).toContain('payments.json')
+    expect(paths).toContain('sales.json')
     expect(paths).toContain('scale-fleet.json')
     expect(paths).toContain('assets/product-12345678.png')
     expect(paths).toContain('evidence/attachments/evidence-12345678-1234-1234-1234-123456789abc.pdf')
@@ -187,6 +219,11 @@ describe('ServerDisasterRecoveryStore', () => {
       JSON.stringify({ orders: [{ id: 'new-current-order' }] }),
       'utf8',
     )
+    await writeFile(
+      path.join(root, 'sales.json'),
+      JSON.stringify({ sales: [{ id: 'SALE-CHANGED' }] }),
+      'utf8',
+    )
 
     const result = await store.restore(
       'el-chunchito',
@@ -201,6 +238,11 @@ describe('ServerDisasterRecoveryStore', () => {
       await readFile(path.join(root, 'catalog.json'), 'utf8'),
     ) as { revision: number }
     expect(restoredCatalog.revision).toBe(4)
+
+    const restoredSales = JSON.parse(
+      await readFile(path.join(root, 'sales.json'), 'utf8'),
+    ) as { sales: Array<{ id: string }> }
+    expect(restoredSales.sales[0].id).toBe('SALE-20260925-abcdef123456')
 
     const restoredAsset = await readFile(
       path.join(root, 'assets', 'product-12345678.png'),
