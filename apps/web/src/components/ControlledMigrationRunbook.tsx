@@ -340,6 +340,9 @@ export function ControlledMigrationRunbook({ products }: { products: Product[] }
           <button className="ghost" type="button" onClick={() => go('/piloto/resumen')}>
             Resumen / PDF
           </button>
+          <button className="ghost" type="button" onClick={() => go('/piloto/evidencia')}>
+            Evidencia / incidentes
+          </button>
         </div>
         <div>
           <button className="ghost" type="button" onClick={exportJson}>

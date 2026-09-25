@@ -39,6 +39,7 @@ The current working slice includes:
 - printable `/piloto/resumen` owner summary with readiness, economics and blockers;
 - `/piloto/decision` production decision gate that blocks migration until technical, fiscal, commercial, Point and rollback evidence is recorded;
 - `/piloto/migracion` controlled migration runbook with GO/NO-GO, critical evidence checks and mandatory rollback flow;
+- `/piloto/evidencia` central evidence/incident ledger with audited status transitions and sanitized export;
 - direct `?view=` links for opening specific admin workspaces;
 - simple daily sales summary.
 
@@ -127,7 +128,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-25 Controlled Migration Runbook
+**Milestone:** OC-26 Pilot Evidence & Incident Ledger
 
 
 ## TV pilot on Windows
@@ -303,3 +304,18 @@ The runbook can be reviewed at any time, but execution remains locked until OC-2
 It guides a future controlled cutover through preparation, preflight, GO/NO-GO, one limited pilot, stabilization and closeout. Critical step failures force a rollback-required state and lock normal execution until recovery is documented.
 
 OC-25 records observations only. It does not write to RM-60 scales, call Mercado Pago, emit SII documents or alter external systems automatically.
+
+
+## Pilot evidence & incident ledger
+
+Open:
+
+~~~text
+http://HOST:8787/piloto/evidencia
+~~~
+
+The ledger centralizes observations, tests, incidents, decisions and safe evidence references across RM-60, SUNMI/Inputsoft, SII, Point, POS, Showcase, catalog and migration work.
+
+Entries are not deleted from the UI. Status changes require a note and append audit history. A lightweight sensitive-data guard blocks some obvious credential/card-number patterns, but operators must still review every entry and export before sharing.
+
+The ledger is stored separately from catalog, sales, Payment Core, Levantamiento, Propuesta, OC-24 and OC-25.
