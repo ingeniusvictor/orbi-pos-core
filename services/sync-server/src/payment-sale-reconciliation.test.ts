@@ -115,10 +115,11 @@ describe('PaymentSaleReconciliationService', () => {
       unlinkedNonprocessed: 1,
     })
 
-    expect(snapshot.records.find((item) => item.order.id === orphan.id)).toMatchObject({
+    const orphanRecord = snapshot.records.find((item) => item.order.id === orphan.id)
+    expect(orphanRecord).toMatchObject({
       state: 'orphan_processed',
-      saleId: undefined,
     })
+    expect(orphanRecord).not.toHaveProperty('saleId')
     expect(snapshot.records.find((item) => item.order.id === linked.id)).toMatchObject({
       state: 'linked',
       saleId: 'SALE-20260925-linked000001',
