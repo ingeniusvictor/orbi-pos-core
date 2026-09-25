@@ -23,6 +23,7 @@ import { ServerDisasterRecovery } from './components/ServerDisasterRecovery'
 import { RecoveryDrillCertification } from './components/RecoveryDrillCertification'
 import { SalesLedger } from './components/SalesLedger'
 import { DailyClose } from './components/DailyClose'
+import { CashDrawer } from './components/CashDrawer'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
 import { cartTotal, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
@@ -35,9 +36,9 @@ import {
   type PaymentOrder,
 } from './payment-api'
 
-type AppView = 'sale' | 'sales' | 'close' | 'prices' | 'products' | 'scale' | 'payments' | 'showcase' | 'discovery' | 'proposal' | 'diagnostics'
+type AppView = 'sale' | 'sales' | 'close' | 'cash' | 'prices' | 'products' | 'scale' | 'payments' | 'showcase' | 'discovery' | 'proposal' | 'diagnostics'
 
-const appViews: AppView[] = ['sale', 'sales', 'close', 'prices', 'products', 'scale', 'payments', 'showcase', 'discovery', 'proposal', 'diagnostics']
+const appViews: AppView[] = ['sale', 'sales', 'close', 'cash', 'prices', 'products', 'scale', 'payments', 'showcase', 'discovery', 'proposal', 'diagnostics']
 
 function initialAppView(): AppView {
   const requested = new URLSearchParams(window.location.search).get('view')
@@ -541,6 +542,7 @@ function OperationalApp() {
           <button className={view === 'sale' ? 'active' : ''} onClick={() => setView('sale')}>Venta</button>
           <button className={view === 'sales' ? 'active' : ''} onClick={() => setView('sales')}>Ventas</button>
           <button className={view === 'close' ? 'active' : ''} onClick={() => setView('close')}>Cierre</button>
+          <button className={view === 'cash' ? 'active' : ''} onClick={() => setView('cash')}>Caja</button>
           <button className={view === 'prices' ? 'active' : ''} onClick={() => setView('prices')}>Precios</button>
           <button className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Productos</button>
           <button className={view === 'scale' ? 'active' : ''} onClick={() => setView('scale')}>Balanza</button>
@@ -577,6 +579,7 @@ function OperationalApp() {
       ) : null}
       {view === 'sales' ? <SalesLedger /> : null}
       {view === 'close' ? <DailyClose /> : null}
+      {view === 'cash' ? <CashDrawer /> : null}
       {view === 'prices' ? (
         <PriceBoard
           categories={categories}
