@@ -85,6 +85,12 @@ describe('SaleService', () => {
       detail: 'server_authoritative',
     }])
     expect(await sales.list('el-chunchito')).toHaveLength(1)
+
+    await expect(service.create('el-chunchito', {
+      ...input,
+      total: 5620,
+      lines: [{ ...lines()[0], subtotal: 5620 }],
+    })).rejects.toThrow(/CLP-10 rounding|idempotency conflict/)
   })
 
   it('requires exact subtotal and sale total calculations', async () => {
