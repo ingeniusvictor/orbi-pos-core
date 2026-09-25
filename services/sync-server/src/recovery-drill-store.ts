@@ -500,6 +500,9 @@ export class RecoveryDrillStore {
           if (typeof sale.id !== 'string' || !sale.id.startsWith('SALE-')) {
             throw new Error(`invalid sale id at index ${index}`)
           }
+          if (typeof sale.clientRequestId !== 'string' || !sale.clientRequestId) {
+            throw new Error(`sale clientRequestId missing at index ${index}`)
+          }
           if (!Array.isArray(sale.lines) || !sale.lines.length) {
             throw new Error(`sale lines missing at index ${index}`)
           }
@@ -509,11 +512,57 @@ export class RecoveryDrillStore {
           if (!['cash', 'debit', 'credit', 'transfer'].includes(String(sale.paymentMethod))) {
             throw new Error(`invalid sale payment method at index ${index}`)
           }
-          if (
-            (sale.paymentMethod === 'debit' || sale.paymentMethod === 'credit')
-            && (!sale.payment || typeof sale.payment !== 'object')
-          ) {
-            throw new Error(`card sale payment trace missing at index ${index}`)
+
+          let computedTotal = 0
+          const lineIds = new Set<string>()
+          for (const [lineIndex, rawLine] of sale.lines.entries()) {
+            if (!rawLine || typeof rawLine !== 'object' || Array.isArray(rawLine)) {
+              throw new Error(`invalid sale line ${index}:${lineIndex}`)
+            }
+            const line = rawLine as Record<string, unknown>
+            if (typeof line.id !== 'string' || lineIds.has(line.id)) {
+              throw new Error(`invalid/duplicate sale line id ${index}:${lineIndex}`)
+            }
+            lineIds.add(line.id)
+            if (!Number.isInteger(line.unitPrice) || Number(line.unitPrice) < 0) {
+              throw new Error(`invalid sale unitPrice ${index}:${lineIndex}`)
+            }
+            if (
+              typeof line.quantity !== 'number'
+              || !Number.isFinite(line.quantity)
+              || line.quantity <= 0
+            ) {
+              throw new Error(`invalid sale quantity ${index}:${lineIndex}`)
+            }
+            if (!Number.isInteger(line.subtotal) || Number(line.subtotal) < 0) {
+              throw new Error(`invalid sale subtotal ${index}:${lineIndex}`)
+            }
+            const expectedSubtotal = Math.round(
+              Number(line.unitPrice) * line.quantity / 10,
+            ) * 10
+            if (Number(line.subtotal) !== expectedSubtotal) {
+              throw new Error(`sale subtotal mismatch ${index}:${lineIndex}`)
+            }
+            computedTotal += Number(line.subtotal)
+          }
+
+          if (computedTotal !== Number(sale.total)) {
+            throw new Error(`sale total mismatch at index ${index}`)
+          }
+
+          const isCard = sale.paymentMethod === 'debit' || sale.paymentMethod === 'credit'
+          if (isCard) {
+            if (!sale.payment || typeof sale.payment !== 'object' || Array.isArray(sale.payment)) {
+              throw new Error(`card sale payment trace missing at index ${index}`)
+            }
+            const payment = sale.payment as Record<string, unknown>
+            for (const field of ['provider', 'orderId', 'providerOrderId', 'externalReference', 'terminalId']) {
+              if (typeof payment[field] !== 'string' || !payment[field]) {
+                throw new Error(`card sale payment trace field ${field} missing at index ${index}`)
+              }
+            }
+          } else if (sale.payment !== undefined) {
+            throw new Error(`non-card sale contains provider trace at index ${index}`)
           }
         }
 
