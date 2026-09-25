@@ -38,6 +38,7 @@ The current working slice includes:
 - fully isolated `/piloto/sesion` end-to-end owner demo that never writes operational sales/payment data;
 - printable `/piloto/resumen` owner summary with readiness, economics and blockers;
 - `/piloto/decision` production decision gate that blocks migration until technical, fiscal, commercial, Point and rollback evidence is recorded;
+- `/piloto/migracion` controlled migration runbook with GO/NO-GO, critical evidence checks and mandatory rollback flow;
 - direct `?view=` links for opening specific admin workspaces;
 - simple daily sales summary.
 
@@ -126,7 +127,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-24 Production Decision Gate
+**Milestone:** OC-25 Controlled Migration Runbook
 
 
 ## TV pilot on Windows
@@ -287,3 +288,18 @@ The gate separates **blocked**, **ready for owner decision**, and **approval rec
 Automatic checks cover the real catalog, PLU coverage, observed four-scale behavior, confirmed RM-60 backup, field discovery and a calculable cost comparison. Separate manual evidence is required for the production fiscal path, a physical Point test and the rollback plan.
 
 The final owner-approval control stays locked until every earlier prerequisite passes. Passing the gate does not enable RM-60 writes, call Mercado Pago, emit SII documents or perform a migration automatically.
+
+
+## Controlled migration runbook
+
+Open:
+
+~~~text
+http://HOST:8787/piloto/migracion
+~~~
+
+The runbook can be reviewed at any time, but execution remains locked until OC-24 is in `approval-recorded`.
+
+It guides a future controlled cutover through preparation, preflight, GO/NO-GO, one limited pilot, stabilization and closeout. Critical step failures force a rollback-required state and lock normal execution until recovery is documented.
+
+OC-25 records observations only. It does not write to RM-60 scales, call Mercado Pago, emit SII documents or alter external systems automatically.
