@@ -133,7 +133,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-32 Payment-to-Sale Reconciliation & Orphan Recovery
+**Milestone:** OC-33 Daily Sales Close & Reconciliation Snapshot
 
 
 ## TV pilot on Windows
@@ -474,3 +474,45 @@ Recovery rules:
 
 OC-32 does not issue SII documents, write to RM-60 scales, or modify an existing
 completed sale.
+
+
+## Daily sales close & reconciliation snapshot
+
+The main navigation includes **Cierre**:
+
+~~~text
+http://HOST:8787/?view=close
+~~~
+
+OC-33 builds a provider-free daily operational snapshot from the
+server-authoritative sales ledger and local Payment Core history.
+
+The default business timezone is:
+
+~~~text
+America/Santiago
+~~~
+
+It can be overridden on the server with:
+
+~~~text
+ORBI_BUSINESS_TIME_ZONE=<IANA time zone>
+~~~
+
+For each business date ORBI reports sales count/total, cash/debit/credit/transfer
+breakdown, processed payments without a sale, refunded payments linked to a
+historical sale, and card-link inconsistencies.
+
+Creating a close writes an immutable revision to:
+
+~~~text
+stores/<storeId>/daily-closes.json
+~~~
+
+Retrying the same unchanged snapshot is idempotent. If the source sales/payment
+state later changes, ORBI appends a new revision and preserves the previous one.
+
+This is an **ORBI operational data close only**. It is not a physical cash-drawer
+count, bank reconciliation, proof of transfer receipt, or Chilean SII/tax close.
+
+OC-33 preview/close does not call Mercado Pago or any other payment provider.

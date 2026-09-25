@@ -23,6 +23,8 @@ export interface OrbiSystemHealth {
     paymentProvider?: string
     serverSalesLedger?: boolean
     paymentSaleReconciliation?: boolean
+    dailyClose?: boolean
+    businessTimeZone?: string
   }
 }
 
