@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -156,6 +156,26 @@ describe('PilotBackupStore', () => {
 
     await expect(store.put('el-chunchito', card))
       .rejects.toThrow('Potential sensitive data')
+  })
+
+  it('detects a tampered stored bundle before recovery', async () => {
+    const store = await makeStore()
+    const saved = await store.put('el-chunchito', bundle())
+    const root = dirs[dirs.length - 1]
+    const file = path.join(
+      root,
+      'stores',
+      'el-chunchito',
+      'pilot-backups',
+      saved.id,
+    )
+    const raw = JSON.parse(await readFile(file, 'utf8')) as Record<string, any>
+    raw.bundle.label = 'Contenido alterado fuera de ORBI'
+    await writeFile(file, JSON.stringify(raw, null, 2), 'utf8')
+
+    await expect(store.get('el-chunchito', saved.id))
+      .rejects.toThrow(/metadata does not match|integrity check failed/)
+    expect(await store.list('el-chunchito')).toEqual([])
   })
 
   it('does not expose a mutation API for deletion at the store layer', async () => {
