@@ -9,6 +9,7 @@ import { createPaymentRuntime } from './payment-providers.js'
 import { PaymentService } from './payment-service.js'
 import type { PaymentOrderStatus } from './payment-types.js'
 import { ScaleFleetStore } from './scale-fleet-store.js'
+import { EvidenceAttachmentStore } from './evidence-attachment-store.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -21,6 +22,7 @@ const assetStore = new AssetStore(DATA_DIR)
 const paymentRuntime = createPaymentRuntime(process.env)
 const paymentService = new PaymentService(new PaymentStore(DATA_DIR), paymentRuntime)
 const scaleFleetStore = new ScaleFleetStore(DATA_DIR)
+const evidenceAttachmentStore = new EvidenceAttachmentStore(DATA_DIR)
 const app = express()
 const startedAt = new Date().toISOString()
 
@@ -39,6 +41,7 @@ app.get('/api/health', (_req, res) => {
       payments: true,
       paymentProvider: paymentRuntime.providerId,
       scaleFleet: true,
+      evidenceAttachments: true,
     },
   })
 })
@@ -85,6 +88,94 @@ app.put(
       return res.status(201).json(record)
     } catch (error) {
       return res.status(400).json({ code: 'INVALID_IMAGE', message: (error as Error).message })
+    }
+  },
+)
+
+
+app.get('/api/stores/:storeId/evidence/attachments', async (req, res) => {
+  try {
+    return res.json(await evidenceAttachmentStore.list(req.params.storeId))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'EVIDENCE_ATTACHMENT_LIST_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.get('/api/stores/:storeId/evidence/attachments/:fileName', async (req, res) => {
+  try {
+    const attachment = await evidenceAttachmentStore.get(
+      req.params.storeId,
+      req.params.fileName,
+    )
+    if (!attachment) {
+      return res.status(404).json({ code: 'EVIDENCE_ATTACHMENT_NOT_FOUND' })
+    }
+
+    res.setHeader('Cache-Control', 'private, no-store')
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename*=UTF-8''${encodeURIComponent(attachment.record.originalName)}`,
+    )
+    res.type(attachment.record.contentType)
+    return res.sendFile(attachment.filePath)
+  } catch (error) {
+    return res.status(400).json({
+      code: 'EVIDENCE_ATTACHMENT_READ_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.put(
+  '/api/stores/:storeId/evidence/attachments/:fileName',
+  express.raw({
+    type: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+    limit: '20mb',
+  }),
+  async (req, res) => {
+    try {
+      if (!Buffer.isBuffer(req.body)) {
+        return res.status(415).json({
+          code: 'UNSUPPORTED_EVIDENCE_ATTACHMENT',
+          message: 'Expected JPG, PNG, WebP or PDF body',
+        })
+      }
+
+      const contentType = String(req.headers['content-type'] ?? '')
+        .split(';')[0]
+        .trim()
+        .toLowerCase()
+
+      const encodedOriginalName = String(req.headers['x-orbi-original-name'] ?? '')
+      let originalName = encodedOriginalName
+      try {
+        originalName = decodeURIComponent(encodedOriginalName)
+      } catch {
+        return res.status(400).json({
+          code: 'INVALID_EVIDENCE_FILENAME',
+          message: 'Invalid original evidence file name',
+        })
+      }
+
+      const record = await evidenceAttachmentStore.put(
+        req.params.storeId,
+        req.params.fileName,
+        contentType,
+        req.body,
+        originalName,
+        String(req.headers['x-orbi-case-id'] ?? '') || undefined,
+        String(req.headers['x-orbi-entry-id'] ?? '') || undefined,
+      )
+
+      return res.status(201).json(record)
+    } catch (error) {
+      return res.status(400).json({
+        code: 'EVIDENCE_ATTACHMENT_UPLOAD_FAILED',
+        message: (error as Error).message,
+      })
     }
   },
 )

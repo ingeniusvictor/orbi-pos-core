@@ -40,6 +40,7 @@ The current working slice includes:
 - `/piloto/decision` production decision gate that blocks migration until technical, fiscal, commercial, Point and rollback evidence is recorded;
 - `/piloto/migracion` controlled migration runbook with GO/NO-GO, critical evidence checks and mandatory rollback flow;
 - `/piloto/evidencia` central evidence/incident ledger with audited status transitions and sanitized export;
+- `/piloto/expedientes` case binder with validated JPG/PNG/WebP/PDF evidence files, SHA-256 integrity metadata and ledger linking;
 - direct `?view=` links for opening specific admin workspaces;
 - simple daily sales summary.
 
@@ -128,7 +129,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-26 Pilot Evidence & Incident Ledger
+**Milestone:** OC-27 Evidence Attachments & Case Binder
 
 
 ## TV pilot on Windows
@@ -319,3 +320,20 @@ The ledger centralizes observations, tests, incidents, decisions and safe eviden
 Entries are not deleted from the UI. Status changes require a note and append audit history. A lightweight sensitive-data guard blocks some obvious credential/card-number patterns, but operators must still review every entry and export before sharing.
 
 The ledger is stored separately from catalog, sales, Payment Core, Levantamiento, Propuesta, OC-24 and OC-25.
+
+
+## Evidence attachments & case binder
+
+Open:
+
+~~~text
+http://HOST:8787/piloto/expedientes
+~~~
+
+OC-27 groups OC-26 ledger entries into incident/test/decision/migration cases and can store validated JPG, PNG, WebP or PDF evidence files on the trusted-LAN ORBI server.
+
+Evidence files use opaque server filenames, preserve the original filename only as metadata, and include byte size, MIME type, upload time and SHA-256 digest. The server validates extension, MIME and magic signature before accepting the file.
+
+The pilot exposes no evidence-file delete endpoint. Unlinking a file from a case changes only the binder relationship; the binary remains stored.
+
+Binary evidence must be reviewed before upload because ORBI validates format/integrity, not whether a PDF/photo contains secrets or personal data.
