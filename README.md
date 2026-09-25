@@ -23,13 +23,14 @@ The current working slice includes:
 - shared LAN catalog synchronization for a separate TV/browser;
 - local cache/fallback when the sync server is unavailable;
 - weight entry and RM-60-compatible CLP 10 subtotal rounding;
-- cart, payment-method selection and local completed-sale persistence;
+- cart and payment-method selection with server-authoritative completed-sale persistence;
 - backend Payment Core with mock Point Smart 2 simulator;
 - dormant Mercado Pago Point Orders adapter with backend-only credentials;
 - terminal/provider registry and payment operations center;
 - Point Webhook HMAC verifier + authoritative provider-order reconciliation;
 - `action_required` safety state requiring terminal review;
-- card checkout state machine that only closes sales after payment status `processed`;
+- card checkout state machine that only closes sales after payment status `processed` **and** server sale persistence succeeds;
+- immutable server sales ledger with idempotent retry and strict Payment Core linkage;
 - owner-facing modernization proposal with evidence-aware cost-benefit calculator;
 - structured field discovery for SUNMI/Inputsoft/SII, current costs and the four RM-60 scales;
 - dynamic question pack for Diana plus sanitized discovery JSON export;
@@ -132,7 +133,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-30 Recovery Drill & Integrity Certification
+**Milestone:** OC-31 Server-Authoritative Sales Ledger & Recovery
 
 
 ## TV pilot on Windows
@@ -247,6 +248,7 @@ Specific admin workspaces can also be linked directly with:
 
 ~~~text
 /?view=sale
+/?view=sales
 /?view=scale
 /?view=payments
 /?view=discovery
@@ -367,7 +369,7 @@ Open:
 http://HOST:8787/piloto/desastre
 ~~~
 
-OC-29 protects the allowlisted ORBI server state required to reconstruct the pilot after losing the mini-PC/server: catalog, Payment Core audit records, RM-60 fleet state, product images, OC-27 evidence files and OC-28 pilot backups.
+OC-29 protects the allowlisted ORBI server state required to reconstruct the pilot after losing the mini-PC/server: catalog, Payment Core audit records, the server-authoritative sales ledger, RM-60 fleet state, product images, OC-27 evidence files and OC-28 pilot backups.
 
 A manual full archive first creates a fresh OC-28 browser-state snapshot, then packages the server data into a portable `.orbi-dr.gz` archive. Every internal file has its own SHA-256, and the exact compressed archive has a second SHA-256.
 
@@ -388,7 +390,7 @@ http://HOST:8787/piloto/certificacion
 
 OC-30 tests an existing OC-29 archive without restoring it over the live server.
 
-The drill verifies the whole compressed archive, reconstructs every archived file into an isolated temporary ORBI data directory, re-hashes the staged files and reopens reconstructed catalog, Payment Core history, RM-60 fleet state, product images, OC-27 evidence and OC-28 backups through their real store implementations where present.
+The drill verifies the whole compressed archive, reconstructs every archived file into an isolated temporary ORBI data directory, re-hashes the staged files and reopens reconstructed catalog, Payment Core history, server-authoritative sales, RM-60 fleet state, product images, OC-27 evidence and OC-28 backups through their real store implementations where present.
 
 The result distinguishes archive failure from ordinary live drift:
 
@@ -403,3 +405,30 @@ A `certified_with_drift` result means the archive remains reconstructable but cu
 Each certification report has its own SHA-256 and is verified again when read. The drill never calls Mercado Pago, SII, physical RM-60 devices or the live OC-29 restore path.
 
 OC-30 exposes no certification DELETE endpoint.
+
+
+## Server-authoritative sales ledger
+
+The operational POS now stores completed sales on the trusted-LAN server:
+
+~~~text
+stores/el-chunchito/sales.json
+~~~
+
+Open the ledger from **Ventas** or directly with:
+
+~~~text
+http://HOST:8787/?view=sales
+~~~
+
+Cash and transfer sales clear the cart only after the server confirms persistence.
+
+Debit/credit sales require a matching Payment Core order in `processed`, and the server verifies the amount, requested method, provider, provider order ID, external reference and terminal before accepting the sale.
+
+If Point has already approved the payment but sale persistence fails, ORBI keeps the payment dialog open and explicitly warns not to charge again. The operator retries only the sale-registration step using the same idempotent client request ID.
+
+Older browser-only records from `orbi-pos:pilot-sales` are not auto-imported. The **Ventas** view exposes them only as legacy data with a JSON export option for manual review.
+
+OC-29 now archives/restores `sales.json`, and OC-30 reconstructs and validates the sales ledger in its isolated recovery drill.
+
+OC-31 does not issue SII documents and does not write to DIGI RM-60 scales.
