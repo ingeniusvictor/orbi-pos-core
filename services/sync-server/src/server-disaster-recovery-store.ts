@@ -568,10 +568,10 @@ export class ServerDisasterRecoveryStore {
     return records.sort((a, b) => b.savedAt.localeCompare(a.savedAt))
   }
 
-  async inspect(
+  async loadValidatedArchive(
     storeId: string,
     archiveId: string,
-  ): Promise<ServerDrInspection> {
+  ): Promise<{ metadata: ServerDrMetadata; bundle: ServerDrBundle }> {
     const archivePath = this.archivePath(storeId, archiveId)
     const [compressed, metadata] = await Promise.all([
       readFile(archivePath),
@@ -597,10 +597,33 @@ export class ServerDisasterRecoveryStore {
       throw new Error('Disaster-recovery metadata does not match archive')
     }
 
+    return { metadata, bundle }
+  }
+
+  async inspect(
+    storeId: string,
+    archiveId: string,
+  ): Promise<ServerDrInspection> {
+    const { metadata, bundle } = await this.loadValidatedArchive(
+      storeId,
+      archiveId,
+    )
+
     return {
       metadata,
       manifest: bundleManifest(bundle),
     }
+  }
+
+  async currentManifest(
+    storeId: string,
+  ): Promise<ServerDrInspection['manifest']> {
+    const bundle = await this.buildBundle(
+      storeId,
+      'Recovery drill live coverage',
+      'manual',
+    )
+    return bundleManifest(bundle)
   }
 
   async getArchivePath(
