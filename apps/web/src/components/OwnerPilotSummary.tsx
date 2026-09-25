@@ -100,6 +100,9 @@ export function OwnerPilotSummary({ products }: { products: Product[] }) {
           <button className="ghost" type="button" onClick={() => { window.location.href = '/piloto/expedientes' }}>
             Expedientes
           </button>
+          <button className="ghost" type="button" onClick={() => { window.location.href = '/piloto/respaldo' }}>
+            Respaldo
+          </button>
           <button className="primary" type="button" onClick={() => window.print()}>
             Imprimir / Guardar PDF
           </button>

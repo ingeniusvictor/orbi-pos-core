@@ -1,0 +1,185 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+  PILOT_BACKUP_FORMAT,
+  PilotBackupStore,
+  type PilotBackupBundle,
+} from './pilot-backup-store.js'
+
+const dirs: string[] = []
+
+async function makeStore() {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'orbi-pos-pilot-backups-'))
+  dirs.push(dir)
+
+  return new PilotBackupStore(
+    dir,
+    () => '2026-09-25T04:00:00.000Z',
+    () => '12345678-1234-1234-1234-123456789abc',
+  )
+}
+
+afterEach(async () => {
+  await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
+})
+
+function bundle(): PilotBackupBundle {
+  return {
+    format: PILOT_BACKUP_FORMAT,
+    business: 'Carnicería El Chunchito',
+    storeId: 'el-chunchito',
+    createdAt: '2026-09-25T03:55:00.000Z',
+    label: 'Respaldo antes de visita',
+    source: 'manual',
+    modules: {
+      fieldDiscovery: {
+        sunmi: {},
+        commercial: {},
+        scale: {},
+      },
+      modernizationProposal: {},
+      productionGate: {
+        fiscalPath: 'pending',
+        fiscalNote: '',
+      },
+      migrationRunbook: {
+        version: 'orbi-pos-migration-runbook/v1',
+        steps: {},
+      },
+      evidenceLedger: {
+        version: 'orbi-pos-evidence-ledger/v1',
+        entries: [],
+      },
+      evidenceCases: {
+        version: 'orbi-pos-evidence-cases/v1',
+        cases: [],
+      },
+    },
+    serverReferences: {
+      catalog: {
+        revision: 7,
+        updatedAt: '2026-09-25T03:00:00.000Z',
+        productCount: 2,
+      },
+      evidenceAttachments: [{
+        fileName: 'evidence-12345678-1234-1234-1234-123456789abc.pdf',
+        contentType: 'application/pdf',
+        size: 1234,
+        sha256: 'a'.repeat(64),
+        uploadedAt: '2026-09-25T03:30:00.000Z',
+        caseId: 'CASE-001',
+        entryId: 'EVD-001',
+      }],
+    },
+    safety: {
+      containsCredentials: false,
+      performsExternalActions: false,
+      warning: 'Pilot control state only.',
+    },
+  }
+}
+
+describe('PilotBackupStore', () => {
+  it('persists, hashes, lists and fetches a validated pilot backup', async () => {
+    const store = await makeStore()
+    const saved = await store.put('el-chunchito', bundle())
+
+    expect(saved.id).toBe('backup-12345678-1234-1234-1234-123456789abc.json')
+    expect(saved.sha256).toMatch(/^[a-f0-9]{64}$/)
+    expect(saved.moduleCount).toBe(6)
+
+    const listed = await store.list('el-chunchito')
+    expect(listed).toHaveLength(1)
+    expect(listed[0].sha256).toBe(saved.sha256)
+
+    const fetched = await store.get('el-chunchito', saved.id)
+    expect(fetched?.bundle.modules.evidenceLedger).toBeDefined()
+  })
+
+  it('rejects store mismatches, incomplete backups and unsupported modules', async () => {
+    const store = await makeStore()
+    const wrongStore = { ...bundle(), storeId: 'other-store' }
+
+    await expect(store.put('el-chunchito', wrongStore))
+      .rejects.toThrow('store id does not match')
+
+    const incomplete = bundle()
+    delete (incomplete.modules as Record<string, unknown>).evidenceCases
+    await expect(store.put('el-chunchito', incomplete))
+      .rejects.toThrow('every protected module')
+
+    const unknownModule = bundle() as PilotBackupBundle & {
+      modules: Record<string, unknown>
+    }
+    unknownModule.modules = {
+      ...unknownModule.modules,
+      paymentSecrets: { value: 'x' },
+    }
+
+    await expect(store.put('el-chunchito', unknownModule))
+      .rejects.toThrow('Unsupported pilot backup module')
+  })
+
+  it('allows timestamp-shaped audit ids while rejecting obvious secrets and Luhn-valid card numbers', async () => {
+    const store = await makeStore()
+    const safeIds = bundle()
+    safeIds.modules.evidenceLedger = {
+      entries: [{
+        id: 'EVD-20260925130000-ABC123',
+        createdAt: '2026-09-25T13:00:00.000Z',
+        note: 'Evidencia operacional sin secretos',
+      }],
+    }
+
+    await expect(store.put('el-chunchito', safeIds)).resolves.toBeDefined()
+
+    const sensitiveLabel = bundle()
+    sensitiveLabel.label = 'password=SuperSecret123'
+    await expect(store.put('el-chunchito', sensitiveLabel))
+      .rejects.toThrow('Potential sensitive data')
+
+    const secret = bundle()
+
+    secret.modules.evidenceLedger = {
+      password: 'SuperSecret123',
+    }
+
+    await expect(store.put('el-chunchito', secret))
+      .rejects.toThrow('Forbidden sensitive field')
+
+    const card = bundle()
+    card.modules.evidenceLedger = {
+      note: '4111 1111 1111 1111',
+    }
+
+    await expect(store.put('el-chunchito', card))
+      .rejects.toThrow('Potential sensitive data')
+  })
+
+  it('detects a tampered stored bundle before recovery', async () => {
+    const store = await makeStore()
+    const saved = await store.put('el-chunchito', bundle())
+    const root = dirs[dirs.length - 1]
+    const file = path.join(
+      root,
+      'stores',
+      'el-chunchito',
+      'pilot-backups',
+      saved.id,
+    )
+    const raw = JSON.parse(await readFile(file, 'utf8')) as Record<string, any>
+    raw.bundle.label = 'Contenido alterado fuera de ORBI'
+    await writeFile(file, JSON.stringify(raw, null, 2), 'utf8')
+
+    await expect(store.get('el-chunchito', saved.id))
+      .rejects.toThrow(/metadata does not match|integrity check failed/)
+    expect(await store.list('el-chunchito')).toEqual([])
+  })
+
+  it('does not expose a mutation API for deletion at the store layer', async () => {
+    const store = await makeStore()
+    expect('delete' in store).toBe(false)
+  })
+})

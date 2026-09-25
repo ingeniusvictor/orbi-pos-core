@@ -170,6 +170,9 @@ export function ProductionDecisionGate({ products }: { products: Product[] }) {
           <button className="ghost" type="button" onClick={() => go('/piloto/expedientes')}>
             Expedientes
           </button>
+          <button className="ghost" type="button" onClick={() => go('/piloto/respaldo')}>
+            Respaldo
+          </button>
         </div>
         <button className="ghost" type="button" onClick={resetManualEvidence}>
           Reiniciar evidencia manual
