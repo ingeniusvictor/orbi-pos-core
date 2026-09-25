@@ -133,7 +133,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-33 Daily Sales Close & Reconciliation Snapshot
+**Milestone:** OC-34 Cash Drawer Sessions & Physical Count Reconciliation
 
 
 ## TV pilot on Windows
@@ -369,7 +369,7 @@ Open:
 http://HOST:8787/piloto/desastre
 ~~~
 
-OC-29 protects the allowlisted ORBI server state required to reconstruct the pilot after losing the mini-PC/server: catalog, Payment Core audit records, the server-authoritative sales ledger, immutable OC-33 daily closes, RM-60 fleet state, product images, OC-27 evidence files and OC-28 pilot backups.
+OC-29 protects the allowlisted ORBI server state required to reconstruct the pilot after losing the mini-PC/server: catalog, Payment Core audit records, the server-authoritative sales ledger, immutable OC-33 daily closes, OC-34 cash-drawer sessions, RM-60 fleet state, product images, OC-27 evidence files and OC-28 pilot backups.
 
 A manual full archive first creates a fresh OC-28 browser-state snapshot, then packages the server data into a portable `.orbi-dr.gz` archive. Every internal file has its own SHA-256, and the exact compressed archive has a second SHA-256.
 
@@ -390,7 +390,7 @@ http://HOST:8787/piloto/certificacion
 
 OC-30 tests an existing OC-29 archive without restoring it over the live server.
 
-The drill verifies the whole compressed archive, reconstructs every archived file into an isolated temporary ORBI data directory, re-hashes the staged files and reopens reconstructed catalog, Payment Core history, server-authoritative sales, OC-33 daily closes, RM-60 fleet state, product images, OC-27 evidence and OC-28 backups through their real store implementations where present.
+The drill verifies the whole compressed archive, reconstructs every archived file into an isolated temporary ORBI data directory, re-hashes the staged files and reopens reconstructed catalog, Payment Core history, server-authoritative sales, OC-33 daily closes, OC-34 cash-drawer sessions, RM-60 fleet state, product images, OC-27 evidence and OC-28 backups through their real store implementations where present.
 
 The result distinguishes archive failure from ordinary live drift:
 
@@ -516,3 +516,41 @@ This is an **ORBI operational data close only**. It is not a physical cash-drawe
 count, bank reconciliation, proof of transfer receipt, or Chilean SII/tax close.
 
 OC-33 preview/close does not call Mercado Pago or any other payment provider.
+
+
+## Cash drawer sessions & physical reconciliation
+
+The main navigation includes **Caja**:
+
+~~~text
+http://HOST:8787/?view=cash
+~~~
+
+OC-34 complements the OC-33 operational close with a physical cash count.
+
+Each store can have only one open drawer session. The session records the opening
+float, append-only paid-in/paid-out movements, and cash sales persisted by the
+server while the session is open.
+
+Expected cash is computed as:
+
+~~~text
+opening float + cash sales + paid in - paid out
+~~~
+
+At close, the operator enters the physically counted cash. ORBI persists the
+expected amount, counted amount and variance as an immutable reconciliation
+snapshot in:
+
+~~~text
+stores/<storeId>/cash-drawer.json
+~~~
+
+Cash sales are selected using the authoritative server `recordedAt` timestamp.
+Normal checkout is not blocked when no drawer session is open; those cash sales
+are explicitly outside drawer-session reconciliation.
+
+OC-34 does not move money, call a payment provider, perform bank reconciliation,
+issue SII documents or write to DIGI RM-60 scales. OC-29 archives/restores
+`cash-drawer.json`, and OC-30 reconstructs and validates session identities,
+movement sums, expected cash and closed-session variance without provider calls.
