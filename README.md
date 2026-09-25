@@ -37,6 +37,7 @@ The current working slice includes:
 - owner-facing `/piloto` demo hub with guided navigation and separate software-vs-field readiness;
 - fully isolated `/piloto/sesion` end-to-end owner demo that never writes operational sales/payment data;
 - printable `/piloto/resumen` owner summary with readiness, economics and blockers;
+- `/piloto/decision` production decision gate that blocks migration until technical, fiscal, commercial, Point and rollback evidence is recorded;
 - direct `?view=` links for opening specific admin workspaces;
 - simple daily sales summary.
 
@@ -125,7 +126,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-23 Owner Pilot Summary & Print Pack
+**Milestone:** OC-24 Production Decision Gate
 
 
 ## TV pilot on Windows
@@ -271,3 +272,18 @@ http://HOST:8787/piloto/resumen
 The summary combines confirmed current-shop facts, the ORBI target architecture, software readiness, field validation, cost-benefit status and pending blockers.
 
 Use **Imprimir / Guardar PDF** to open the browser print dialog. If the economic inputs are incomplete, the report explicitly remains without an economic conclusion rather than inventing savings.
+
+
+## Production decision gate
+
+Open:
+
+~~~text
+http://HOST:8787/piloto/decision
+~~~
+
+The gate separates **blocked**, **ready for owner decision**, and **approval recorded** states.
+
+Automatic checks cover the real catalog, PLU coverage, observed four-scale behavior, confirmed RM-60 backup, field discovery and a calculable cost comparison. Separate manual evidence is required for the production fiscal path, a physical Point test and the rollback plan.
+
+The final owner-approval control stays locked until every earlier prerequisite passes. Passing the gate does not enable RM-60 writes, call Mercado Pago, emit SII documents or perform a migration automatically.
