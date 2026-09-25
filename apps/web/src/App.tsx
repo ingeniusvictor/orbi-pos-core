@@ -28,6 +28,11 @@ import { useCatalogSync } from './use-catalog-sync'
 import { resolveProductImageUrl } from './asset-api'
 import { demoProducts } from './demo-catalog'
 import { createClientSaleRequestId, createServerSale, listServerSales } from './sales-api'
+import {
+  fetchPaymentSaleReconciliation,
+  recoverySaleRequestId,
+  type PaymentOrder,
+} from './payment-api'
 
 type AppView = 'sale' | 'sales' | 'prices' | 'products' | 'scale' | 'payments' | 'showcase' | 'discovery' | 'proposal' | 'diagnostics'
 
@@ -124,6 +129,12 @@ function SaleView({
   const [notice, setNotice] = useState('')
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [checkoutWorking, setCheckoutWorking] = useState(false)
+  const [recoveryPaymentId, setRecoveryPaymentId] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('recoverPayment'),
+  )
+  const [recoveryOrder, setRecoveryOrder] = useState<PaymentOrder | null>(null)
+  const [recoveryLoading, setRecoveryLoading] = useState(Boolean(recoveryPaymentId))
+  const [recoveryError, setRecoveryError] = useState('')
   const saleRequestId = useRef(createClientSaleRequestId())
   const saleCreatedAt = useRef(new Date().toISOString())
 
@@ -136,6 +147,53 @@ function SaleView({
   const todaySales = sales.filter((sale) => new Date(sale.createdAt).toDateString() === today)
   const todayTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0)
   const total = cartTotal(cart)
+  const recoveryTotalMatches = recoveryOrder ? total === recoveryOrder.amount : false
+
+  useEffect(() => {
+    if (!recoveryPaymentId) {
+      setRecoveryOrder(null)
+      setRecoveryLoading(false)
+      setRecoveryError('')
+      return
+    }
+
+    let active = true
+    setRecoveryLoading(true)
+    setRecoveryError('')
+
+    async function loadRecoveryPayment() {
+      try {
+        const snapshot = await fetchPaymentSaleReconciliation()
+        if (!active) return
+        const record = snapshot.records.find((candidate) =>
+          candidate.order.id === recoveryPaymentId,
+        )
+
+        if (!record) {
+          throw new Error('La orden de pago no existe en el historial local de Payment Core.')
+        }
+        if (record.state !== 'orphan_processed') {
+          throw new Error(
+            record.saleId
+              ? `Este pago ya está enlazado a la venta ${record.saleId}.`
+              : 'Esta orden no es un pago processed recuperable.',
+          )
+        }
+
+        setRecoveryOrder(record.order)
+        setPaymentMethod(record.order.requestedMethod)
+        saleRequestId.current = recoverySaleRequestId(record.order.id)
+        saleCreatedAt.current = record.order.createdAt
+      } catch (reason) {
+        if (active) setRecoveryError((reason as Error).message)
+      } finally {
+        if (active) setRecoveryLoading(false)
+      }
+    }
+
+    void loadRecoveryPayment()
+    return () => { active = false }
+  }, [recoveryPaymentId])
 
   function resetSaleIdentity() {
     saleRequestId.current = createClientSaleRequestId()
@@ -145,6 +203,20 @@ function SaleView({
   function showNotice(message: string, timeout = 4200) {
     setNotice(message)
     window.setTimeout(() => setNotice(''), timeout)
+  }
+
+  function clearRecoveryMode(clearCart = true) {
+    setRecoveryPaymentId(null)
+    setRecoveryOrder(null)
+    setRecoveryError('')
+    setRecoveryLoading(false)
+    setPaymentMethod('cash')
+    if (clearCart) setCart([])
+    resetSaleIdentity()
+
+    const url = new URL(window.location.href)
+    url.searchParams.delete('recoverPayment')
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
   }
 
   async function persistSale(payment?: SalePayment) {
@@ -173,6 +245,40 @@ function SaleView({
   async function checkout() {
     if (!cart.length || checkoutWorking) return
 
+    if (recoveryPaymentId) {
+      if (!recoveryOrder) {
+        showNotice(recoveryError || 'El pago de recuperación todavía no está validado.', 6000)
+        return
+      }
+      if (!recoveryTotalMatches) {
+        showNotice(
+          `El total reconstruido debe ser exactamente ${formatCLP(recoveryOrder.amount)} antes de registrar la venta.`,
+          6000,
+        )
+        return
+      }
+
+      setCheckoutWorking(true)
+      try {
+        await persistSale({
+          provider: recoveryOrder.provider,
+          orderId: recoveryOrder.id,
+          providerOrderId: recoveryOrder.providerOrderId,
+          externalReference: recoveryOrder.externalReference,
+          terminalId: recoveryOrder.terminalId,
+        })
+        clearRecoveryMode(false)
+      } catch (reason) {
+        showNotice(
+          `El pago ya está procesado. NO vuelvas a cobrar. Reintenta solo el registro · ${(reason as Error).message}`,
+          8000,
+        )
+      } finally {
+        setCheckoutWorking(false)
+      }
+      return
+    }
+
     if (paymentMethod === 'debit' || paymentMethod === 'credit') {
       setPaymentOpen(true)
       return
@@ -193,6 +299,30 @@ function SaleView({
 
   return (
     <>
+      {recoveryPaymentId ? (
+        <div className="sale-recovery-banner">
+          <div className="sale-recovery-icon">!</div>
+          <div>
+            <p className="eyebrow">OC-32 · Recuperación segura</p>
+            <h2>PAGO YA PROCESADO — NO VOLVER A COBRAR</h2>
+            {recoveryLoading ? <p>Validando el pago contra Payment Core y el ledger local…</p> : null}
+            {recoveryError ? <p className="sale-recovery-error">{recoveryError}</p> : null}
+            {recoveryOrder ? (
+              <p>
+                Reconstruye únicamente las líneas verificadas de la venta. Deben sumar exactamente
+                {' '}<b>{formatCLP(recoveryOrder.amount)}</b> ·
+                {' '}{paymentLabel(recoveryOrder.requestedMethod)} ·
+                {' '}{recoveryOrder.externalReference}.
+                ORBI reutilizará este pago y no creará una nueva orden Point.
+              </p>
+            ) : null}
+          </div>
+          <button className="ghost" type="button" onClick={() => clearRecoveryMode(true)}>
+            Cancelar recuperación
+          </button>
+        </div>
+      ) : null}
+
       <div className="daily-ribbon">
         <div><small>Ventas servidor hoy</small><strong>{formatCLP(todayTotal)}</strong></div>
         <span>
@@ -273,7 +403,7 @@ function SaleView({
               ] as const).map(([value, icon, label]) => (
                 <button
                   key={value}
-                  disabled={checkoutWorking || paymentOpen}
+                  disabled={checkoutWorking || paymentOpen || Boolean(recoveryPaymentId)}
                   className={paymentMethod === value ? 'payment active' : 'payment'}
                   onClick={() => setPaymentMethod(value)}
                 >
@@ -284,18 +414,29 @@ function SaleView({
             <button
               className="primary checkout-button"
               onClick={() => { void checkout() }}
-              disabled={!cart.length || checkoutWorking}
+              disabled={
+                !cart.length
+                || checkoutWorking
+                || recoveryLoading
+                || Boolean(recoveryPaymentId && (!recoveryOrder || !recoveryTotalMatches))
+              }
             >
               {checkoutWorking
                 ? 'Registrando en servidor…'
-                : paymentMethod === 'debit' || paymentMethod === 'credit'
-                  ? `Cobrar con Point ${cart.length ? formatCLP(total) : ''}`
-                  : `Registrar cobro ${cart.length ? formatCLP(total) : ''}`}
+                : recoveryPaymentId
+                  ? `Registrar venta ya pagada ${cart.length ? formatCLP(total) : ''}`
+                  : paymentMethod === 'debit' || paymentMethod === 'credit'
+                    ? `Cobrar con Point ${cart.length ? formatCLP(total) : ''}`
+                    : `Registrar cobro ${cart.length ? formatCLP(total) : ''}`}
             </button>
             <small className="point-checkout-note">
-              {paymentMethod === 'debit' || paymentMethod === 'credit'
-                ? 'La venta se cierra solo después de Point processed + confirmación del ledger servidor.'
-                : 'El carrito se limpia solo cuando sales.json confirma la persistencia.'}
+              {recoveryPaymentId
+                ? recoveryOrder && !recoveryTotalMatches
+                  ? `Recuperación bloqueada: el carrito debe sumar ${formatCLP(recoveryOrder.amount)}. No se hará un nuevo cobro.`
+                  : 'Recuperación: se registrará la venta contra el pago existente. No se hará un nuevo cobro.'
+                : paymentMethod === 'debit' || paymentMethod === 'credit'
+                  ? 'La venta se cierra solo después de Point processed + confirmación del ledger servidor.'
+                  : 'El carrito se limpia solo cuando sales.json confirma la persistencia.'}
             </small>
           </div>
         </aside>
