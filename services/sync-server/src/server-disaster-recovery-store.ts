@@ -80,11 +80,12 @@ export interface ServerDrInspection {
 const ASSET_FILE = /^assets\/[a-z0-9][a-z0-9-]{7,79}\.(?:jpg|jpeg|png|webp)$/
 const EVIDENCE_FILE = /^evidence\/attachments\/evidence-[a-z0-9-]{20,80}\.(?:jpg|jpeg|png|webp|pdf)(?:\.meta\.json)?$/
 const PILOT_BACKUP_FILE = /^pilot-backups\/backup-[0-9a-f-]{36}\.json$/
-const EXACT_FILES = new Set(['catalog.json', 'payments.json', 'scale-fleet.json'])
+const EXACT_FILES = new Set(['catalog.json', 'payments.json', 'sales.json', 'scale-fleet.json'])
 
 const PROTECTED_TARGETS = [
   'catalog.json',
   'payments.json',
+  'sales.json',
   'scale-fleet.json',
   'assets',
   'evidence/attachments',
@@ -143,6 +144,7 @@ export function isAllowedServerDrPath(value: string) {
 function componentFor(relative: string) {
   if (relative === 'catalog.json') return 'catalog'
   if (relative === 'payments.json') return 'payments'
+  if (relative === 'sales.json') return 'sales'
   if (relative === 'scale-fleet.json') return 'scale-fleet'
   if (relative.startsWith('assets/')) return 'product-assets'
   if (relative.startsWith('evidence/attachments/')) return 'evidence-attachments'
@@ -377,6 +379,7 @@ export class ServerDisasterRecoveryStore {
       await Promise.all([
         this.readOptionalFile(storeId, 'catalog.json'),
         this.readOptionalFile(storeId, 'payments.json'),
+        this.readOptionalFile(storeId, 'sales.json'),
         this.readOptionalFile(storeId, 'scale-fleet.json'),
       ])
     ).filter((item): item is ServerDrFile => Boolean(item))
