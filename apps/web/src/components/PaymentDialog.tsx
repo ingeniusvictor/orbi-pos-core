@@ -15,7 +15,7 @@ import {
 interface Props {
   amount: number
   method: Extract<PaymentMethod, 'debit' | 'credit'>
-  onApproved: (order: PaymentOrder) => void
+  onApproved: (order: PaymentOrder) => Promise<void> | void
   onClose: () => void
 }
 
@@ -32,7 +32,7 @@ function statusCopy(order: PaymentOrder | null) {
     return ['Revisar terminal', 'Mercado Pago requiere confirmar el resultado directamente en la Point. ORBI no cerrará la venta automáticamente.']
   }
   if (order.status === 'processed') {
-    return ['Pago aprobado', 'Mercado Pago confirmó la operación.']
+    return ['Pago aprobado', 'Mercado Pago confirmó la operación. ORBI está registrando la venta en el ledger servidor.']
   }
   if (order.status === 'failed') {
     return ['Pago rechazado', 'La venta sigue abierta. Puedes reintentar o cambiar el medio de pago.']
@@ -48,11 +48,36 @@ function statusCopy(order: PaymentOrder | null) {
 
 export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
   const requestId = useRef(createClientPaymentRequestId())
-  const approvedRef = useRef(false)
+  const onApprovedRef = useRef(onApproved)
+  const settlementCompleteRef = useRef(false)
+  const settlementInFlightRef = useRef(false)
   const [runtime, setRuntime] = useState<PaymentRuntimeInfo | null>(null)
   const [order, setOrder] = useState<PaymentOrder | null>(null)
   const [error, setError] = useState('')
+  const [settlementError, setSettlementError] = useState('')
   const [working, setWorking] = useState(true)
+
+  useEffect(() => {
+    onApprovedRef.current = onApproved
+  }, [onApproved])
+
+  async function persistApprovedSale(nextOrder: PaymentOrder) {
+    if (settlementCompleteRef.current || settlementInFlightRef.current) return
+
+    settlementInFlightRef.current = true
+    setWorking(true)
+    setSettlementError('')
+
+    try {
+      await onApprovedRef.current(nextOrder)
+      settlementCompleteRef.current = true
+    } catch (reason) {
+      setSettlementError((reason as Error).message)
+    } finally {
+      settlementInFlightRef.current = false
+      setWorking(false)
+    }
+  }
 
   useEffect(() => {
     let stopped = false
@@ -62,10 +87,7 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
       if (stopped) return
 
       if (nextOrder.status === 'processed') {
-        if (!approvedRef.current) {
-          approvedRef.current = true
-          onApproved(nextOrder)
-        }
+        await persistApprovedSale(nextOrder)
         return
       }
 
@@ -79,7 +101,7 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
           const latest = await fetchPaymentOrder(nextOrder.id)
           if (stopped) return
           setOrder(latest)
-          void refresh(latest)
+          await refresh(latest)
         } catch (reason) {
           if (!stopped) {
             setError((reason as Error).message)
@@ -92,6 +114,7 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
     async function start() {
       setWorking(true)
       setError('')
+      setSettlementError('')
 
       try {
         const [nextRuntime, nextOrder] = await Promise.all([
@@ -103,7 +126,7 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
         setRuntime(nextRuntime)
         setOrder(nextOrder)
         setWorking(false)
-        void refresh(nextOrder)
+        await refresh(nextOrder)
       } catch (reason) {
         if (!stopped) {
           setError((reason as Error).message)
@@ -118,27 +141,32 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
       stopped = true
       if (timer !== undefined) window.clearTimeout(timer)
     }
-  }, [amount, method, onApproved])
+  }, [amount, method])
 
   const [title, detail] = statusCopy(order)
   const isMock = runtime?.provider === 'mock'
-  const finalFailure = Boolean(order && ['action_required', 'failed', 'canceled', 'expired'].includes(order.status))
+  const finalFailure = Boolean(
+    order && ['action_required', 'failed', 'canceled', 'expired'].includes(order.status),
+  )
 
-  async function transition(status: 'at_terminal' | 'action_required' | 'processed' | 'failed' | 'expired') {
+  async function transition(
+    status: 'at_terminal' | 'action_required' | 'processed' | 'failed' | 'expired',
+  ) {
     if (!order) return
     setWorking(true)
     setError('')
+    setSettlementError('')
+
     try {
       const next = await mockPaymentTransition(order.id, status)
       setOrder(next)
-      if (next.status === 'processed' && !approvedRef.current) {
-        approvedRef.current = true
-        onApproved(next)
+      if (next.status === 'processed') {
+        await persistApprovedSale(next)
       }
     } catch (reason) {
       setError((reason as Error).message)
     } finally {
-      setWorking(false)
+      if (status !== 'processed') setWorking(false)
     }
   }
 
@@ -182,6 +210,20 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
           </div>
         </div>
 
+        {settlementError && order?.status === 'processed' ? (
+          <div className="payment-ledger-critical">
+            <span>!</span>
+            <div>
+              <b>El pago ya fue procesado, pero la venta todavía no quedó confirmada en ORBI.</b>
+              <p>
+                No vuelvas a cobrar. Reintenta únicamente el registro de la venta.
+                La solicitud es idempotente y reutiliza este mismo pago.
+              </p>
+              <small>{settlementError}</small>
+            </div>
+          </div>
+        ) : null}
+
         {order ? (
           <div className="payment-trace">
             <span>ORBI ref.</span><b>{order.externalReference}</b>
@@ -209,14 +251,28 @@ export function PaymentDialog({ amount, method, onApproved, onClose }: Props) {
           {order?.status === 'created' ? (
             <button className="ghost" type="button" onClick={() => { void cancel() }} disabled={working}>Cancelar orden</button>
           ) : null}
+
+          {settlementError && order?.status === 'processed' ? (
+            <button
+              className="primary"
+              type="button"
+              disabled={working}
+              onClick={() => { void persistApprovedSale(order) }}
+            >
+              Reintentar registro de venta
+            </button>
+          ) : null}
+
           {(finalFailure || error) ? (
             <button className="primary" type="button" onClick={onClose}>Volver a la venta</button>
           ) : null}
-          {working ? <span>Procesando…</span> : null}
+
+          {working ? <span>{order?.status === 'processed' ? 'Registrando venta…' : 'Procesando…'}</span> : null}
         </div>
 
         <p className="payment-footnote">
-          La venta ORBI solo se cierra cuando el proveedor confirma <b>processed</b>.
+          La venta ORBI solo se cierra cuando el proveedor confirma <b>processed</b>
+          {' '}y el ledger servidor confirma la persistencia.
         </p>
       </section>
     </div>
