@@ -8236,3 +8236,39 @@ body:has(.modernization-page.presentation) {
     justify-content: flex-start;
   }
 }
+
+
+.case-recoverable-files {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px dashed #d8c8c0;
+  border-radius: 10px;
+  background: #f8f4f1;
+}
+
+.case-recoverable-files > b {
+  font-size: 8px;
+  color: #665a55;
+}
+
+.case-recoverable-files > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.case-recoverable-files span {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 8px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .case-recoverable-files > div {
+    display: grid;
+  }
+}
