@@ -314,6 +314,7 @@ export function PilotBackupRecovery() {
           <button className="ghost" type="button" onClick={() => go('/piloto/expedientes')}>Expedientes</button>
           <button className="ghost" type="button" onClick={() => go('/piloto/migracion')}>Runbook</button>
           <button className="ghost" type="button" onClick={() => go('/piloto/desastre')}>DR servidor OC-29</button>
+          <button className="ghost" type="button" onClick={() => go('/piloto/certificacion')}>Certificación OC-30</button>
         </div>
         <button className="ghost" type="button" disabled={busy} onClick={() => void refreshServer()}>
           Actualizar estado

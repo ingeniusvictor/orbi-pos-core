@@ -43,6 +43,7 @@ The current working slice includes:
 - `/piloto/expedientes` case binder with validated JPG/PNG/WebP/PDF evidence files, SHA-256 integrity metadata and ledger linking;
 - `/piloto/respaldo` server + portable backup/recovery for browser-local pilot control state, with selective restore and automatic pre-restore safety snapshot;
 - `/piloto/desastre` full-server disaster recovery with allowlisted binary data, portable gzip archive, per-file/whole-archive SHA-256 and staged safety restore;
+- `/piloto/certificacion` non-destructive recovery drill that physically reconstructs an OC-29 archive in a temporary sandbox, reopens domain stores and records an integrity certificate;
 - direct `?view=` links for opening specific admin workspaces;
 - simple daily sales summary.
 
@@ -131,7 +132,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-29 Full Server Disaster Recovery Archive
+**Milestone:** OC-30 Recovery Drill & Integrity Certification
 
 
 ## TV pilot on Windows
@@ -375,3 +376,30 @@ Runtime environment variables and provider credentials are intentionally exclude
 Imported archives are validated before preview. Restore requires the exact store confirmation phrase, creates a complete pre-restore server archive first, stages and re-verifies files, and never replaces the disaster-recovery archive directory itself.
 
 OC-29 exposes no DELETE endpoint.
+
+
+## Recovery drill & integrity certification
+
+Open:
+
+~~~text
+http://HOST:8787/piloto/certificacion
+~~~
+
+OC-30 tests an existing OC-29 archive without restoring it over the live server.
+
+The drill verifies the whole compressed archive, reconstructs every archived file into an isolated temporary ORBI data directory, re-hashes the staged files and reopens reconstructed catalog, Payment Core history, RM-60 fleet state, product images, OC-27 evidence and OC-28 backups through their real store implementations where present.
+
+The result distinguishes archive failure from ordinary live drift:
+
+~~~text
+certified
+certified_with_drift
+failed
+~~~
+
+A `certified_with_drift` result means the archive remains reconstructable but current allowlisted server files changed after the snapshot.
+
+Each certification report has its own SHA-256 and is verified again when read. The drill never calls Mercado Pago, SII, physical RM-60 devices or the live OC-29 restore path.
+
+OC-30 exposes no certification DELETE endpoint.

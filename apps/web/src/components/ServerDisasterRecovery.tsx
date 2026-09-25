@@ -230,6 +230,7 @@ export function ServerDisasterRecovery() {
           <button className="ghost" type="button" onClick={() => go('/piloto/respaldo')}>Backup OC-28</button>
           <button className="ghost" type="button" onClick={() => go('/piloto/expedientes')}>Expedientes</button>
           <button className="ghost" type="button" onClick={() => go('/piloto/migracion')}>Runbook</button>
+          <button className="ghost" type="button" onClick={() => go('/piloto/certificacion')}>Certificación OC-30</button>
         </div>
         <button className="ghost" type="button" disabled={busy} onClick={() => void refresh()}>
           Actualizar archivos
