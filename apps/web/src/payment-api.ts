@@ -47,6 +47,32 @@ export interface PaymentOrder {
   updatedAt: string
 }
 
+export type PaymentSaleReconciliationState =
+  | 'linked'
+  | 'orphan_processed'
+  | 'refunded_after_sale'
+  | 'unlinked_nonprocessed'
+
+export interface PaymentSaleReconciliationRecord {
+  order: PaymentOrder
+  state: PaymentSaleReconciliationState
+  saleId?: string
+}
+
+export interface PaymentSaleReconciliationSnapshot {
+  storeId: string
+  generatedAt: string
+  providerCallsMade: false
+  summary: {
+    total: number
+    linked: number
+    orphanProcessed: number
+    refundedAfterSale: number
+    unlinkedNonprocessed: number
+  }
+  records: PaymentSaleReconciliationRecord[]
+}
+
 async function jsonOrError<T>(response: Response): Promise<T> {
   const body = await response.json().catch(() => null) as
     | T
@@ -83,6 +109,17 @@ export async function listPaymentOrders(
     { cache: 'no-store' },
   )
   return await jsonOrError<PaymentOrder[]>(response)
+}
+
+export async function fetchPaymentSaleReconciliation(
+  storeId = ORBI_STORE_ID,
+  limit = 500,
+): Promise<PaymentSaleReconciliationSnapshot> {
+  const response = await fetch(
+    orbiApi(`/api/stores/${encodeURIComponent(storeId)}/payments/reconciliation?limit=${limit}`),
+    { cache: 'no-store' },
+  )
+  return await jsonOrError<PaymentSaleReconciliationSnapshot>(response)
 }
 
 export async function createPaymentOrder(
@@ -143,4 +180,11 @@ export async function mockPaymentTransition(
 export function createClientPaymentRequestId(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
   return `req-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`
+}
+
+export function recoverySaleRequestId(paymentOrderId: string): string {
+  if (!/^[A-Za-z0-9_-]{8,80}$/.test(paymentOrderId)) {
+    throw new Error('Invalid payment order id for sale recovery')
+  }
+  return `recover_${paymentOrderId}`
 }

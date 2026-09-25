@@ -10782,3 +10782,156 @@ body:has(.modernization-page.presentation) {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ── OC-32 payment-to-sale reconciliation & orphan recovery ───── */
+.payment-reconciliation-critical,
+.payment-reconciliation-refund,
+.sale-recovery-banner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 12px 0;
+  padding: 14px;
+  border-radius: 14px;
+}
+
+.payment-reconciliation-critical,
+.sale-recovery-banner {
+  border: 1px solid #d18f82;
+  background: #fff0ec;
+  color: #67352f;
+}
+
+.payment-reconciliation-refund {
+  border: 1px solid #ddbd70;
+  background: #fff8e4;
+  color: #6c571f;
+}
+
+.payment-reconciliation-critical > span,
+.payment-reconciliation-refund > span,
+.sale-recovery-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-weight: 950;
+}
+
+.payment-reconciliation-critical > span,
+.sale-recovery-icon {
+  background: #f2d0c8;
+  color: #8d3428;
+}
+
+.payment-reconciliation-refund > span {
+  background: #f3e1b2;
+  color: #7c641f;
+}
+
+.payment-reconciliation-critical > div,
+.payment-reconciliation-refund > div,
+.sale-recovery-banner > div:nth-child(2) {
+  flex: 1;
+}
+
+.payment-reconciliation-critical b,
+.payment-reconciliation-refund b {
+  font-size: 11px;
+}
+
+.payment-reconciliation-critical p,
+.payment-reconciliation-refund p,
+.sale-recovery-banner p {
+  margin: 4px 0 0;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.payment-reconciliation-summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.payment-orders-reconciled {
+  overflow-x: auto;
+}
+
+.payment-orders-reconciled .payment-order-row {
+  min-width: 1120px;
+  grid-template-columns:
+    minmax(190px, 1.2fr)
+    165px
+    105px
+    80px
+    110px
+    minmax(190px, 1.1fr)
+    minmax(145px, .9fr);
+}
+
+.payment-sale-link {
+  display: grid;
+  gap: 6px;
+  align-items: start;
+}
+
+.payment-sale-link > b {
+  overflow-wrap: anywhere;
+  font-size: 9px;
+}
+
+.payment-sale-link .compact {
+  width: max-content;
+  min-height: 30px;
+  padding: 6px 9px;
+  font-size: 8px;
+}
+
+.reconciliation-orphan_processed {
+  background: #fff7f4;
+}
+
+.reconciliation-refunded_after_sale {
+  background: #fffaf0;
+}
+
+.sale-recovery-banner {
+  margin: 14px 18px 0;
+  box-shadow: 0 8px 28px rgba(105, 45, 34, .08);
+}
+
+.sale-recovery-banner h2 {
+  margin: 2px 0 4px;
+  color: #7d2d24;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.sale-recovery-banner .sale-recovery-error {
+  color: #8b2f27;
+  font-weight: 800;
+}
+
+.sale-recovery-banner > button {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 900px) {
+  .payment-reconciliation-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sale-recovery-banner {
+    display: grid;
+  }
+
+  .sale-recovery-banner > button {
+    width: 100%;
+  }
+
+  .payment-orders-reconciled .payment-order-row > :last-child {
+    display: initial;
+  }
+}

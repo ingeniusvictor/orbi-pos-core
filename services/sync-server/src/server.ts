@@ -15,6 +15,7 @@ import { ServerDisasterRecoveryStore } from './server-disaster-recovery-store.js
 import { RecoveryDrillStore } from './recovery-drill-store.js'
 import { SaleStore } from './sale-store.js'
 import { SaleService } from './sale-service.js'
+import { PaymentSaleReconciliationService } from './payment-sale-reconciliation.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -29,6 +30,7 @@ const paymentStore = new PaymentStore(DATA_DIR)
 const paymentService = new PaymentService(paymentStore, paymentRuntime)
 const saleStore = new SaleStore(DATA_DIR)
 const saleService = new SaleService(saleStore, paymentStore)
+const paymentSaleReconciliation = new PaymentSaleReconciliationService(paymentStore, saleStore)
 const scaleFleetStore = new ScaleFleetStore(DATA_DIR)
 const evidenceAttachmentStore = new EvidenceAttachmentStore(DATA_DIR)
 const pilotBackupStore = new PilotBackupStore(DATA_DIR)
@@ -57,6 +59,7 @@ app.get('/api/health', (_req, res) => {
       disasterRecovery: true,
       recoveryDrills: true,
       serverSalesLedger: true,
+      paymentSaleReconciliation: true,
     },
   })
 })
@@ -462,10 +465,22 @@ app.get('/api/stores/:storeId/payments/runtime', (req, res) => {
   })
 })
 
+app.get('/api/stores/:storeId/payments/reconciliation', async (req, res) => {
+  try {
+    const limit = Number(req.query.limit ?? 500)
+    return res.json(await paymentSaleReconciliation.inspect(req.params.storeId, limit))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'PAYMENT_SALE_RECONCILIATION_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
 app.get('/api/stores/:storeId/payments/orders', async (req, res) => {
   try {
     const limit = Number(req.query.limit ?? 100)
-    return res.json(await paymentService.list(req.params.storeId))
+    return res.json(await paymentService.list(req.params.storeId, limit))
   } catch (error) {
     return res.status(400).json({ code: 'PAYMENT_LIST_FAILED', message: (error as Error).message })
   }
