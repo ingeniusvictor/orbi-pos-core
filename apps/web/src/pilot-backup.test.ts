@@ -77,6 +77,11 @@ describe('pilot backup bundle', () => {
     expect(() => sanitizePilotBackupBundle(unknown, 'el-chunchito'))
       .toThrow('no permitido')
 
+    const sensitiveLabel = structuredClone(bundle)
+    sensitiveLabel.label = 'access_token=ABCDEF1234567890'
+    expect(() => sanitizePilotBackupBundle(sensitiveLabel, 'el-chunchito'))
+      .toThrow('Posible dato sensible')
+
     const sensitive = structuredClone(bundle)
     ;(sensitive.modules.evidenceLedger as unknown as Record<string, unknown>).password = 'secret'
     expect(() => sanitizePilotBackupBundle(sensitive, 'el-chunchito'))
