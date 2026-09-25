@@ -71,6 +71,20 @@ describe('controlled migration runbook', () => {
     expect(setGoNoGoDecision('approval-recorded', state, 'go').decision).toBe('go')
   })
 
+  it('locks controlled-pilot steps until GO is selected', () => {
+    let state = startMigrationRunbook('approval-recorded', scheduledRunbook())
+    state = passPhase(state, 'preparation')
+    state = passPhase(state, 'preflight')
+
+    expect(() => updateMigrationStep(
+      'approval-recorded',
+      state,
+      'pilot-weigh-product',
+      'passed',
+      'Pesaje verificado',
+    )).toThrow('until GO is selected')
+  })
+
   it('forces rollback-required when a critical active step fails', () => {
     let state = startMigrationRunbook('approval-recorded', scheduledRunbook())
     state = passPhase(state, 'preparation')
