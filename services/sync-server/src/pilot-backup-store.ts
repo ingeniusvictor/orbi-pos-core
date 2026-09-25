@@ -251,6 +251,11 @@ export function validatePilotBackupBundle(
   }
 
   const moduleEntries = Object.entries(bundle.modules)
+  for (const [moduleName] of moduleEntries) {
+    if (!PILOT_BACKUP_MODULES.includes(moduleName as PilotBackupModuleName)) {
+      throw new Error(`Unsupported pilot backup module: ${moduleName}`)
+    }
+  }
   if (moduleEntries.length !== PILOT_BACKUP_MODULES.length) {
     throw new Error('Pilot backup must contain every protected module')
   }
@@ -261,9 +266,6 @@ export function validatePilotBackupBundle(
   }
 
   for (const [moduleName, moduleValue] of moduleEntries) {
-    if (!PILOT_BACKUP_MODULES.includes(moduleName as PilotBackupModuleName)) {
-      throw new Error(`Unsupported pilot backup module: ${moduleName}`)
-    }
     if (!moduleValue || typeof moduleValue !== 'object') {
       throw new Error(`Pilot backup module must be an object: ${moduleName}`)
     }
