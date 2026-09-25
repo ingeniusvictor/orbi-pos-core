@@ -12,6 +12,7 @@ import { ScaleFleetStore } from './scale-fleet-store.js'
 import { EvidenceAttachmentStore } from './evidence-attachment-store.js'
 import { PilotBackupStore } from './pilot-backup-store.js'
 import { ServerDisasterRecoveryStore } from './server-disaster-recovery-store.js'
+import { RecoveryDrillStore } from './recovery-drill-store.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -27,6 +28,7 @@ const scaleFleetStore = new ScaleFleetStore(DATA_DIR)
 const evidenceAttachmentStore = new EvidenceAttachmentStore(DATA_DIR)
 const pilotBackupStore = new PilotBackupStore(DATA_DIR)
 const disasterRecoveryStore = new ServerDisasterRecoveryStore(DATA_DIR)
+const recoveryDrillStore = new RecoveryDrillStore(DATA_DIR, disasterRecoveryStore)
 const app = express()
 const startedAt = new Date().toISOString()
 
@@ -48,6 +50,7 @@ app.get('/api/health', (_req, res) => {
       evidenceAttachments: true,
       pilotBackups: true,
       disasterRecovery: true,
+      recoveryDrills: true,
     },
   })
 })
@@ -98,6 +101,49 @@ app.put(
   },
 )
 
+
+app.get('/api/stores/:storeId/disaster-recovery/certifications', async (req, res) => {
+  try {
+    return res.json(await recoveryDrillStore.list(req.params.storeId))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'RECOVERY_DRILL_LIST_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.get('/api/stores/:storeId/disaster-recovery/certifications/:certificateId', async (req, res) => {
+  try {
+    const record = await recoveryDrillStore.get(
+      req.params.storeId,
+      req.params.certificateId,
+    )
+    if (!record) {
+      return res.status(404).json({ code: 'RECOVERY_DRILL_CERTIFICATION_NOT_FOUND' })
+    }
+    return res.json(record)
+  } catch (error) {
+    return res.status(400).json({
+      code: 'RECOVERY_DRILL_READ_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.post('/api/stores/:storeId/disaster-recovery/archives/:archiveId/drill', async (req, res) => {
+  try {
+    return res.status(201).json(await recoveryDrillStore.run(
+      req.params.storeId,
+      req.params.archiveId,
+    ))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'RECOVERY_DRILL_RUN_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
 
 app.get('/api/stores/:storeId/disaster-recovery/archives', async (req, res) => {
   try {
