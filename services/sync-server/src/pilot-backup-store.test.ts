@@ -103,9 +103,21 @@ describe('PilotBackupStore', () => {
       .rejects.toThrow('Unsupported pilot backup module')
   })
 
-  it('rejects obvious secrets and possible card numbers inside modules', async () => {
+  it('allows timestamp-shaped audit ids while rejecting obvious secrets and Luhn-valid card numbers', async () => {
     const store = await makeStore()
+    const safeIds = bundle()
+    safeIds.modules.evidenceLedger = {
+      entries: [{
+        id: 'EVD-20260925130000-ABC123',
+        createdAt: '2026-09-25T13:00:00.000Z',
+        note: 'Evidencia operacional sin secretos',
+      }],
+    }
+
+    await expect(store.put('el-chunchito', safeIds)).resolves.toBeDefined()
+
     const secret = bundle()
+
     secret.modules.evidenceLedger = {
       password: 'SuperSecret123',
     }
