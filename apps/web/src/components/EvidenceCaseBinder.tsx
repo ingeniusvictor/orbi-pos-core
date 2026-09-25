@@ -143,10 +143,25 @@ export function EvidenceCaseBinder() {
     [cases.cases, selectedCaseId],
   )
 
+  useEffect(() => {
+    if (!selectedCase) return
+    const next = (Object.keys(statusLabels) as EvidenceCaseStatus[])
+      .find((status) => status !== selectedCase.status)
+    if (next) setCaseStatus(next)
+  }, [selectedCase?.id, selectedCase?.status])
+
   const selectedAttachments = useMemo(() => {
     if (!selectedCase) return []
     const ids = new Set(selectedCase.attachmentIds)
     return attachments.filter((item) => ids.has(item.fileName))
+  }, [attachments, selectedCase])
+
+  const recoverableAttachments = useMemo(() => {
+    if (!selectedCase) return []
+    const linked = new Set(selectedCase.attachmentIds)
+    return attachments.filter(
+      (item) => item.caseId === selectedCase.id && !linked.has(item.fileName),
+    )
   }, [attachments, selectedCase])
 
   const availableEntries = useMemo(() => {
@@ -220,6 +235,14 @@ export function EvidenceCaseBinder() {
       linkAttachmentToCase(current, selectedCase.id, fileName, false),
     )
     flash('Archivo desvinculado del expediente. El binario se conserva en el servidor.')
+  }
+
+  function relinkAttachment(fileName: string) {
+    if (!selectedCase) return
+    setCases((current) =>
+      linkAttachmentToCase(current, selectedCase.id, fileName, true),
+    )
+    flash('Archivo almacenado vuelto a vincular al expediente.')
   }
 
   function changeCaseStatus() {
@@ -518,6 +541,24 @@ export function EvidenceCaseBinder() {
                     <div className="case-empty-panel">Sin archivos vinculados a este expediente.</div>
                   )}
                 </div>
+
+                {recoverableAttachments.length ? (
+                  <div className="case-recoverable-files">
+                    <b>Archivos almacenados de este expediente, actualmente desvinculados</b>
+                    {recoverableAttachments.map((attachment) => (
+                      <div key={attachment.fileName}>
+                        <span>{attachment.originalName} · {formatBytes(attachment.size)}</span>
+                        <button
+                          className="ghost"
+                          type="button"
+                          onClick={() => relinkAttachment(attachment.fileName)}
+                        >
+                          Volver a vincular
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </section>
 
               <details className="case-history">
