@@ -291,6 +291,7 @@ export function EvidenceCaseBinder() {
           <button className="ghost" type="button" onClick={() => go('/piloto/evidencia')}>Ledger OC-26</button>
           <button className="ghost" type="button" onClick={() => go('/piloto/migracion')}>Runbook OC-25</button>
           <button className="ghost" type="button" onClick={() => go('/piloto/respaldo')}>Respaldo OC-28</button>
+          <button className="ghost" type="button" onClick={() => go('/piloto/desastre')}>DR OC-29</button>
         </div>
         <button className="ghost" type="button" onClick={exportBinder}>Exportar expediente JSON</button>
       </header>

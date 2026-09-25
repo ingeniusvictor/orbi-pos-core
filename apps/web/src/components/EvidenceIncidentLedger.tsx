@@ -213,6 +213,7 @@ export function EvidenceIncidentLedger() {
           <button className="ghost" type="button" onClick={() => go('/piloto/migracion')}>Runbook OC-25</button>
           <button className="ghost" type="button" onClick={() => go('/piloto/expedientes')}>Expedientes OC-27</button>
           <button className="ghost" type="button" onClick={() => go('/piloto/respaldo')}>Respaldo OC-28</button>
+          <button className="ghost" type="button" onClick={() => go('/piloto/desastre')}>DR OC-29</button>
         </div>
         <button className="ghost" type="button" onClick={exportJson}>Exportar ledger JSON</button>
       </header>

@@ -11,6 +11,7 @@ import type { PaymentOrderStatus } from './payment-types.js'
 import { ScaleFleetStore } from './scale-fleet-store.js'
 import { EvidenceAttachmentStore } from './evidence-attachment-store.js'
 import { PilotBackupStore } from './pilot-backup-store.js'
+import { ServerDisasterRecoveryStore } from './server-disaster-recovery-store.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -25,6 +26,7 @@ const paymentService = new PaymentService(new PaymentStore(DATA_DIR), paymentRun
 const scaleFleetStore = new ScaleFleetStore(DATA_DIR)
 const evidenceAttachmentStore = new EvidenceAttachmentStore(DATA_DIR)
 const pilotBackupStore = new PilotBackupStore(DATA_DIR)
+const disasterRecoveryStore = new ServerDisasterRecoveryStore(DATA_DIR)
 const app = express()
 const startedAt = new Date().toISOString()
 
@@ -45,6 +47,7 @@ app.get('/api/health', (_req, res) => {
       scaleFleet: true,
       evidenceAttachments: true,
       pilotBackups: true,
+      disasterRecovery: true,
     },
   })
 })
@@ -95,6 +98,112 @@ app.put(
   },
 )
 
+
+app.get('/api/stores/:storeId/disaster-recovery/archives', async (req, res) => {
+  try {
+    return res.json(await disasterRecoveryStore.list(req.params.storeId))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'DR_ARCHIVE_LIST_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.post('/api/stores/:storeId/disaster-recovery/archives', async (req, res) => {
+  try {
+    const archive = await disasterRecoveryStore.create(
+      req.params.storeId,
+      String(req.body?.label ?? ''),
+      'manual',
+    )
+    return res.status(201).json(archive)
+  } catch (error) {
+    return res.status(400).json({
+      code: 'DR_ARCHIVE_CREATE_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.post(
+  '/api/stores/:storeId/disaster-recovery/import',
+  express.raw({
+    type: ['application/gzip', 'application/octet-stream'],
+    limit: '160mb',
+  }),
+  async (req, res) => {
+    try {
+      if (!Buffer.isBuffer(req.body)) {
+        return res.status(415).json({
+          code: 'DR_ARCHIVE_BODY_REQUIRED',
+          message: 'Expected a gzip disaster-recovery archive body',
+        })
+      }
+
+      const archive = await disasterRecoveryStore.import(
+        req.params.storeId,
+        req.body,
+      )
+      return res.status(201).json(archive)
+    } catch (error) {
+      return res.status(400).json({
+        code: 'DR_ARCHIVE_IMPORT_FAILED',
+        message: (error as Error).message,
+      })
+    }
+  },
+)
+
+app.get('/api/stores/:storeId/disaster-recovery/archives/:archiveId', async (req, res) => {
+  try {
+    return res.json(await disasterRecoveryStore.inspect(
+      req.params.storeId,
+      req.params.archiveId,
+    ))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'DR_ARCHIVE_INSPECT_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.get('/api/stores/:storeId/disaster-recovery/archives/:archiveId/download', async (req, res) => {
+  try {
+    const filePath = await disasterRecoveryStore.getArchivePath(
+      req.params.storeId,
+      req.params.archiveId,
+    )
+    res.setHeader('Cache-Control', 'private, no-store')
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${req.params.archiveId}"`,
+    )
+    res.type('application/gzip')
+    return res.sendFile(filePath)
+  } catch (error) {
+    return res.status(400).json({
+      code: 'DR_ARCHIVE_DOWNLOAD_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.post('/api/stores/:storeId/disaster-recovery/archives/:archiveId/restore', async (req, res) => {
+  try {
+    return res.json(await disasterRecoveryStore.restore(
+      req.params.storeId,
+      req.params.archiveId,
+      String(req.body?.confirmation ?? ''),
+    ))
+  } catch (error) {
+    return res.status(409).json({
+      code: 'DR_ARCHIVE_RESTORE_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
 
 app.get('/api/stores/:storeId/pilot-backups', async (req, res) => {
   try {

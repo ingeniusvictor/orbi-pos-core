@@ -19,6 +19,7 @@ import { ControlledMigrationRunbook } from './components/ControlledMigrationRunb
 import { EvidenceIncidentLedger } from './components/EvidenceIncidentLedger'
 import { EvidenceCaseBinder } from './components/EvidenceCaseBinder'
 import { PilotBackupRecovery } from './components/PilotBackupRecovery'
+import { ServerDisasterRecovery } from './components/ServerDisasterRecovery'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
@@ -428,6 +429,10 @@ export function App() {
 
   if (path.endsWith('/piloto/respaldo')) {
     return <PilotBackupRecovery />
+  }
+
+  if (path.endsWith('/piloto/desastre')) {
+    return <ServerDisasterRecovery />
   }
 
   if (path.endsWith('/piloto')) {

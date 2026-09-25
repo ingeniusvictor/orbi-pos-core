@@ -42,6 +42,7 @@ The current working slice includes:
 - `/piloto/evidencia` central evidence/incident ledger with audited status transitions and sanitized export;
 - `/piloto/expedientes` case binder with validated JPG/PNG/WebP/PDF evidence files, SHA-256 integrity metadata and ledger linking;
 - `/piloto/respaldo` server + portable backup/recovery for browser-local pilot control state, with selective restore and automatic pre-restore safety snapshot;
+- `/piloto/desastre` full-server disaster recovery with allowlisted binary data, portable gzip archive, per-file/whole-archive SHA-256 and staged safety restore;
 - direct `?view=` links for opening specific admin workspaces;
 - simple daily sales summary.
 
@@ -130,7 +131,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-28 Pilot State Backup & Recovery Bundle
+**Milestone:** OC-29 Full Server Disaster Recovery Archive
 
 
 ## TV pilot on Windows
@@ -355,3 +356,22 @@ Backups can be saved on the trusted-LAN ORBI server with SHA-256 metadata or dow
 The backup records catalog revision/product-count and OC-27 attachment metadata as references only. It does not publish or restore catalog data, payment state, RM-60 data, SII state or binary evidence files.
 
 OC-28 exposes no backup DELETE endpoint.
+
+
+## Full server disaster recovery
+
+Open:
+
+~~~text
+http://HOST:8787/piloto/desastre
+~~~
+
+OC-29 protects the allowlisted ORBI server state required to reconstruct the pilot after losing the mini-PC/server: catalog, Payment Core audit records, RM-60 fleet state, product images, OC-27 evidence files and OC-28 pilot backups.
+
+A manual full archive first creates a fresh OC-28 browser-state snapshot, then packages the server data into a portable `.orbi-dr.gz` archive. Every internal file has its own SHA-256, and the exact compressed archive has a second SHA-256.
+
+Runtime environment variables and provider credentials are intentionally excluded. Mercado Pago/SII/RM-60 actions are never triggered by archive creation or restore.
+
+Imported archives are validated before preview. Restore requires the exact store confirmation phrase, creates a complete pre-restore server archive first, stages and re-verifies files, and never replaces the disaster-recovery archive directory itself.
+
+OC-29 exposes no DELETE endpoint.
