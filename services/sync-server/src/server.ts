@@ -10,6 +10,7 @@ import { PaymentService } from './payment-service.js'
 import type { PaymentOrderStatus } from './payment-types.js'
 import { ScaleFleetStore } from './scale-fleet-store.js'
 import { EvidenceAttachmentStore } from './evidence-attachment-store.js'
+import { PilotBackupStore } from './pilot-backup-store.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -23,6 +24,7 @@ const paymentRuntime = createPaymentRuntime(process.env)
 const paymentService = new PaymentService(new PaymentStore(DATA_DIR), paymentRuntime)
 const scaleFleetStore = new ScaleFleetStore(DATA_DIR)
 const evidenceAttachmentStore = new EvidenceAttachmentStore(DATA_DIR)
+const pilotBackupStore = new PilotBackupStore(DATA_DIR)
 const app = express()
 const startedAt = new Date().toISOString()
 
@@ -42,6 +44,7 @@ app.get('/api/health', (_req, res) => {
       paymentProvider: paymentRuntime.providerId,
       scaleFleet: true,
       evidenceAttachments: true,
+      pilotBackups: true,
     },
   })
 })
@@ -92,6 +95,50 @@ app.put(
   },
 )
 
+
+app.get('/api/stores/:storeId/pilot-backups', async (req, res) => {
+  try {
+    return res.json(await pilotBackupStore.list(req.params.storeId))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'PILOT_BACKUP_LIST_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.get('/api/stores/:storeId/pilot-backups/:backupId', async (req, res) => {
+  try {
+    const record = await pilotBackupStore.get(
+      req.params.storeId,
+      req.params.backupId,
+    )
+    if (!record) {
+      return res.status(404).json({ code: 'PILOT_BACKUP_NOT_FOUND' })
+    }
+    return res.json(record)
+  } catch (error) {
+    return res.status(400).json({
+      code: 'PILOT_BACKUP_READ_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.post('/api/stores/:storeId/pilot-backups', async (req, res) => {
+  try {
+    const record = await pilotBackupStore.put(
+      req.params.storeId,
+      req.body?.bundle,
+    )
+    return res.status(201).json(record)
+  } catch (error) {
+    return res.status(400).json({
+      code: 'PILOT_BACKUP_CREATE_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
 
 app.get('/api/stores/:storeId/evidence/attachments', async (req, res) => {
   try {
