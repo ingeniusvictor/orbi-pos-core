@@ -42,7 +42,7 @@ export class CashDrawerService {
     private readonly now: () => Date = () => new Date(),
     private readonly idFactory: () => string = () => randomUUID(),
   ) {
-    businessDateFor(this.now(), businessTimeZone)
+    businessDateFor('2026-01-01T00:00:00.000Z', businessTimeZone)
   }
 
   async list(storeId: string, limit = 200) {
