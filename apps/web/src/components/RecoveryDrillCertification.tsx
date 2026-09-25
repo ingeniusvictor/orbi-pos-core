@@ -37,6 +37,7 @@ const componentLabels: Record<string, string> = {
   payments: 'Payment Core histórico',
   sales: 'Ledger de ventas',
   'daily-closes': 'Cierres diarios OC-33',
+  'cash-drawer': 'Sesiones de caja OC-34',
   'scale-fleet': 'Fleet DIGI RM-60',
   'product-assets': 'Imágenes de productos',
   'evidence-attachments': 'Evidencia OC-27',
