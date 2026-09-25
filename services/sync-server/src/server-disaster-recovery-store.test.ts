@@ -90,6 +90,45 @@ async function seedStore(dataDir: string) {
     'utf8',
   )
   await writeFile(
+    path.join(root, 'daily-closes.json'),
+    JSON.stringify({
+      closes: [{
+        id: 'CLOSE-20260925-abcdef123456',
+        storeId: 'el-chunchito',
+        businessDate: '2026-09-25',
+        businessTimeZone: 'America/Santiago',
+        generatedAt: '2026-09-25T23:00:00.000Z',
+        providerCallsMade: false,
+        salesCount: 1,
+        salesTotal: 5610,
+        methods: {
+          cash: { count: 1, total: 5610 },
+          debit: { count: 0, total: 0 },
+          credit: { count: 0, total: 0 },
+          transfer: { count: 0, total: 0 },
+        },
+        reconciliation: {
+          linkedCardSales: 0,
+          orphanProcessed: 0,
+          refundedAfterSale: 0,
+          cardLinkMismatches: 0,
+        },
+        status: 'reconciled',
+        warnings: [],
+        sourceFingerprint: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        revision: 1,
+        createdAt: '2026-09-25T23:00:00.000Z',
+        audit: [{
+          event: 'created',
+          at: '2026-09-25T23:00:00.000Z',
+          actor: 'orbi-pos-server',
+          detail: 'daily_close_snapshot',
+        }],
+      }],
+    }),
+    'utf8',
+  )
+  await writeFile(
     path.join(root, 'scale-fleet.json'),
     JSON.stringify({
       storeId: 'el-chunchito',
@@ -145,6 +184,7 @@ describe('ServerDisasterRecoveryStore', () => {
     expect(paths).toContain('catalog.json')
     expect(paths).toContain('payments.json')
     expect(paths).toContain('sales.json')
+    expect(paths).toContain('daily-closes.json')
     expect(paths).toContain('scale-fleet.json')
     expect(paths).toContain('assets/product-12345678.png')
     expect(paths).toContain('evidence/attachments/evidence-12345678-1234-1234-1234-123456789abc.pdf')
@@ -224,6 +264,11 @@ describe('ServerDisasterRecoveryStore', () => {
       JSON.stringify({ sales: [{ id: 'SALE-CHANGED' }] }),
       'utf8',
     )
+    await writeFile(
+      path.join(root, 'daily-closes.json'),
+      JSON.stringify({ closes: [{ id: 'CLOSE-CHANGED' }] }),
+      'utf8',
+    )
 
     const result = await store.restore(
       'el-chunchito',
@@ -243,6 +288,11 @@ describe('ServerDisasterRecoveryStore', () => {
       await readFile(path.join(root, 'sales.json'), 'utf8'),
     ) as { sales: Array<{ id: string }> }
     expect(restoredSales.sales[0].id).toBe('SALE-20260925-abcdef123456')
+
+    const restoredCloses = JSON.parse(
+      await readFile(path.join(root, 'daily-closes.json'), 'utf8'),
+    ) as { closes: Array<{ id: string }> }
+    expect(restoredCloses.closes[0].id).toBe('CLOSE-20260925-abcdef123456')
 
     const restoredAsset = await readFile(
       path.join(root, 'assets', 'product-12345678.png'),

@@ -18,6 +18,7 @@ import { PaymentStore } from './payment-store.js'
 import { PilotBackupStore } from './pilot-backup-store.js'
 import { ScaleFleetStore } from './scale-fleet-store.js'
 import { SaleStore } from './sale-store.js'
+import { DailyCloseStore } from './daily-close-store.js'
 import {
   ServerDisasterRecoveryStore,
   isAllowedServerDrPath,
@@ -50,6 +51,7 @@ export interface RecoveryDrillComponent {
     | 'catalog'
     | 'payments'
     | 'sales'
+    | 'daily-closes'
     | 'scale-fleet'
     | 'product-assets'
     | 'evidence-attachments'
@@ -587,6 +589,154 @@ export class RecoveryDrillStore {
       } catch (error) {
         components.push(component('sales', 'fail', 1, salesFile.size, (error as Error).message))
         checks.push(check('sales-domain', 'Ledger de ventas recuperable', 'fail', (error as Error).message))
+      }
+    }
+
+    const dailyCloseFile = fileMap.get('daily-closes.json')
+    if (!dailyCloseFile) {
+      components.push(component(
+        'daily-closes',
+        'not_present',
+        0,
+        0,
+        'daily-closes.json is not present in this archive.',
+      ))
+    } else {
+      try {
+        const raw = await readFile(path.join(stagedStoreDir, 'daily-closes.json'))
+        const parsed = parseJson(raw, 'daily-closes.json')
+        if (!Array.isArray(parsed.closes)) {
+          throw new Error('daily close history is not an array')
+        }
+
+        const revisionsByDate = new Map<string, Set<number>>()
+        for (const [index, candidate] of parsed.closes.entries()) {
+          if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+            throw new Error(`invalid daily close record at index ${index}`)
+          }
+          const close = candidate as Record<string, any>
+          if (close.storeId !== storeId) {
+            throw new Error(`daily close storeId mismatch at index ${index}`)
+          }
+          if (
+            typeof close.businessDate !== 'string'
+            || !/^\d{4}-\d{2}-\d{2}$/.test(close.businessDate)
+          ) {
+            throw new Error(`invalid daily close businessDate at index ${index}`)
+          }
+          if (typeof close.businessTimeZone !== 'string' || !close.businessTimeZone) {
+            throw new Error(`daily close timezone missing at index ${index}`)
+          }
+          try {
+            new Intl.DateTimeFormat('en-US', {
+              timeZone: close.businessTimeZone,
+            }).format(new Date())
+          } catch {
+            throw new Error(`invalid daily close timezone at index ${index}`)
+          }
+          if (!Number.isInteger(close.revision) || close.revision < 1) {
+            throw new Error(`invalid daily close revision at index ${index}`)
+          }
+          const revisions = revisionsByDate.get(close.businessDate) ?? new Set<number>()
+          if (revisions.has(close.revision)) {
+            throw new Error(`duplicate daily close revision at index ${index}`)
+          }
+          revisions.add(close.revision)
+          revisionsByDate.set(close.businessDate, revisions)
+
+          if (
+            typeof close.sourceFingerprint !== 'string'
+            || !/^[a-f0-9]{64}$/.test(close.sourceFingerprint)
+          ) {
+            throw new Error(`invalid daily close fingerprint at index ${index}`)
+          }
+          if (!Number.isInteger(close.salesCount) || close.salesCount < 0) {
+            throw new Error(`invalid daily close salesCount at index ${index}`)
+          }
+          if (!Number.isInteger(close.salesTotal) || close.salesTotal < 0) {
+            throw new Error(`invalid daily close salesTotal at index ${index}`)
+          }
+          if (!close.methods || typeof close.methods !== 'object') {
+            throw new Error(`daily close methods missing at index ${index}`)
+          }
+
+          let methodCount = 0
+          let methodTotal = 0
+          for (const method of ['cash', 'debit', 'credit', 'transfer']) {
+            const summary = close.methods[method]
+            if (
+              !summary
+              || !Number.isInteger(summary.count)
+              || summary.count < 0
+              || !Number.isInteger(summary.total)
+              || summary.total < 0
+            ) {
+              throw new Error(`invalid daily close method ${method} at index ${index}`)
+            }
+            methodCount += summary.count
+            methodTotal += summary.total
+          }
+          if (methodCount !== close.salesCount || methodTotal !== close.salesTotal) {
+            throw new Error(`daily close method totals mismatch at index ${index}`)
+          }
+          if (!['reconciled', 'attention_required'].includes(close.status)) {
+            throw new Error(`invalid daily close status at index ${index}`)
+          }
+          if (!Array.isArray(close.warnings)) {
+            throw new Error(`daily close warnings missing at index ${index}`)
+          }
+          if (!close.reconciliation || typeof close.reconciliation !== 'object') {
+            throw new Error(`daily close reconciliation missing at index ${index}`)
+          }
+          for (const field of [
+            'linkedCardSales',
+            'orphanProcessed',
+            'refundedAfterSale',
+            'cardLinkMismatches',
+          ]) {
+            if (
+              !Number.isInteger(close.reconciliation[field])
+              || close.reconciliation[field] < 0
+            ) {
+              throw new Error(`invalid daily close reconciliation ${field} at index ${index}`)
+            }
+          }
+        }
+
+        const closes = await new DailyCloseStore(sandboxDataDir).list(storeId, 5_000)
+        if (closes.length !== parsed.closes.length) {
+          throw new Error(
+            `DailyCloseStore reopened ${closes.length}/${parsed.closes.length} close(s)`,
+          )
+        }
+
+        components.push(component(
+          'daily-closes',
+          'pass',
+          1,
+          dailyCloseFile.size,
+          `DailyCloseStore reopened ${closes.length} immutable close revision(s) without provider calls.`,
+        ))
+        checks.push(check(
+          'daily-close-domain',
+          'Cierres diarios recuperables',
+          'pass',
+          'Business dates, method totals, revisions and fingerprints validated.',
+        ))
+      } catch (error) {
+        components.push(component(
+          'daily-closes',
+          'fail',
+          1,
+          dailyCloseFile.size,
+          (error as Error).message,
+        ))
+        checks.push(check(
+          'daily-close-domain',
+          'Cierres diarios recuperables',
+          'fail',
+          (error as Error).message,
+        ))
       }
     }
 

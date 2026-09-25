@@ -13,6 +13,7 @@ import { PilotBackupStore, PILOT_BACKUP_FORMAT } from './pilot-backup-store.js'
 import { RecoveryDrillStore } from './recovery-drill-store.js'
 import { ScaleFleetStore } from './scale-fleet-store.js'
 import { SaleStore } from './sale-store.js'
+import { DailyCloseStore } from './daily-close-store.js'
 import { ServerDisasterRecoveryStore } from './server-disaster-recovery-store.js'
 
 const dirs: string[] = []
@@ -107,6 +108,33 @@ async function seedRecoverableStore(dataDir: string) {
       actor: 'orbi-pos-web',
       detail: 'server_authoritative',
     }],
+  })
+
+  await new DailyCloseStore(dataDir).append('el-chunchito', {
+    id: 'CLOSE-20260925-drill000001',
+    storeId: 'el-chunchito',
+    businessDate: '2026-09-25',
+    businessTimeZone: 'America/Santiago',
+    generatedAt: '2026-09-25T05:03:00.000Z',
+    providerCallsMade: false,
+    salesCount: 1,
+    salesTotal: 5610,
+    methods: {
+      cash: { count: 1, total: 5610 },
+      debit: { count: 0, total: 0 },
+      credit: { count: 0, total: 0 },
+      transfer: { count: 0, total: 0 },
+    },
+    reconciliation: {
+      linkedCardSales: 0,
+      orphanProcessed: 0,
+      refundedAfterSale: 0,
+      cardLinkMismatches: 0,
+    },
+    status: 'reconciled',
+    warnings: [],
+    sourceFingerprint: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    createdAt: '2026-09-25T05:03:00.000Z',
   })
 
   await new ScaleFleetStore(
@@ -225,7 +253,7 @@ describe('RecoveryDrillStore', () => {
     const after = await readFile(catalogPath, 'utf8')
 
     expect(record.certificate.result).toBe('certified')
-    expect(record.certificate.stagedFiles).toBe(8)
+    expect(record.certificate.stagedFiles).toBe(9)
     expect(record.certificate.stagedBytes).toBeGreaterThan(0)
     expect(record.certificate.safety.liveDataReplaced).toBe(false)
     expect(record.certificate.safety.providerCallsMade).toBe(false)
@@ -236,6 +264,7 @@ describe('RecoveryDrillStore', () => {
     expect(byId.get('catalog')?.status).toBe('pass')
     expect(byId.get('payments')?.status).toBe('pass')
     expect(byId.get('sales')?.status).toBe('pass')
+    expect(byId.get('daily-closes')?.status).toBe('pass')
     expect(byId.get('scale-fleet')?.status).toBe('pass')
     expect(byId.get('product-assets')?.status).toBe('pass')
     expect(byId.get('evidence-attachments')?.status).toBe('pass')
