@@ -34,13 +34,27 @@ function bundle(): PilotBackupBundle {
     label: 'Respaldo antes de visita',
     source: 'manual',
     modules: {
+      fieldDiscovery: {
+        sunmi: {},
+        commercial: {},
+        scale: {},
+      },
+      modernizationProposal: {},
+      productionGate: {
+        fiscalPath: 'pending',
+        fiscalNote: '',
+      },
+      migrationRunbook: {
+        version: 'orbi-pos-migration-runbook/v1',
+        steps: {},
+      },
       evidenceLedger: {
         version: 'orbi-pos-evidence-ledger/v1',
         entries: [],
       },
-      productionGate: {
-        fiscalPath: 'pending',
-        fiscalNote: '',
+      evidenceCases: {
+        version: 'orbi-pos-evidence-cases/v1',
+        cases: [],
       },
     },
     serverReferences: {
@@ -74,7 +88,7 @@ describe('PilotBackupStore', () => {
 
     expect(saved.id).toBe('backup-12345678-1234-1234-1234-123456789abc.json')
     expect(saved.sha256).toMatch(/^[a-f0-9]{64}$/)
-    expect(saved.moduleCount).toBe(2)
+    expect(saved.moduleCount).toBe(6)
 
     const listed = await store.list('el-chunchito')
     expect(listed).toHaveLength(1)
@@ -84,12 +98,17 @@ describe('PilotBackupStore', () => {
     expect(fetched?.bundle.modules.evidenceLedger).toBeDefined()
   })
 
-  it('rejects store mismatches and unsupported modules', async () => {
+  it('rejects store mismatches, incomplete backups and unsupported modules', async () => {
     const store = await makeStore()
     const wrongStore = { ...bundle(), storeId: 'other-store' }
 
     await expect(store.put('el-chunchito', wrongStore))
       .rejects.toThrow('store id does not match')
+
+    const incomplete = bundle()
+    delete (incomplete.modules as Record<string, unknown>).evidenceCases
+    await expect(store.put('el-chunchito', incomplete))
+      .rejects.toThrow('every protected module')
 
     const unknownModule = bundle() as PilotBackupBundle & {
       modules: Record<string, unknown>
@@ -115,6 +134,11 @@ describe('PilotBackupStore', () => {
     }
 
     await expect(store.put('el-chunchito', safeIds)).resolves.toBeDefined()
+
+    const sensitiveLabel = bundle()
+    sensitiveLabel.label = 'password=SuperSecret123'
+    await expect(store.put('el-chunchito', sensitiveLabel))
+      .rejects.toThrow('Potential sensitive data')
 
     const secret = bundle()
 
