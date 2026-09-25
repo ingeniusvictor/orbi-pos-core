@@ -96,12 +96,6 @@ export class SaleService {
       throw new Error('Invalid sale client request id')
     }
 
-    const existing = await this.sales.findByClientRequestId(
-      storeId,
-      input.clientRequestId,
-    )
-    if (existing) return existing
-
     if (!Array.isArray(input.lines) || input.lines.length < 1 || input.lines.length > 200) {
       throw new Error('Sale must contain 1–200 lines')
     }
@@ -115,13 +109,36 @@ export class SaleService {
 
     validateMethod(input.paymentMethod)
 
-    const computedTotal = input.lines.reduce((sum, line) => sum + line.subtotal, 0)
+    const normalizedLines = input.lines.map((line) => ({
+      ...line,
+      name: line.name.trim(),
+    }))
+
+    const computedTotal = normalizedLines.reduce((sum, line) => sum + line.subtotal, 0)
     if (
       !Number.isInteger(input.total)
       || input.total <= 0
       || input.total !== computedTotal
     ) {
       throw new Error('Sale total does not match line subtotals')
+    }
+
+    const existing = await this.sales.findByClientRequestId(
+      storeId,
+      input.clientRequestId,
+    )
+    if (existing) {
+      const existingPayment = existing.payment ?? null
+      const requestedPayment = input.payment ?? null
+      const sameRequest = existing.paymentMethod === input.paymentMethod
+        && existing.total === input.total
+        && JSON.stringify(existing.lines) === JSON.stringify(normalizedLines)
+        && JSON.stringify(existingPayment) === JSON.stringify(requestedPayment)
+
+      if (!sameRequest) {
+        throw new Error('Sale idempotency conflict: clientRequestId was already used with different sale data')
+      }
+      return existing
     }
 
     if (isCardPaymentMethod(input.paymentMethod)) {
@@ -175,10 +192,7 @@ export class SaleService {
       createdAt,
       recordedAt: now.toISOString(),
       source: 'orbi-pos-web',
-      lines: input.lines.map((line) => ({
-        ...line,
-        name: line.name.trim(),
-      })),
+      lines: normalizedLines,
       paymentMethod: input.paymentMethod,
       total: input.total,
       payment: isCardPaymentMethod(input.paymentMethod)
