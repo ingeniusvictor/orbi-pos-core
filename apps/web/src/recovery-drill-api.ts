@@ -24,6 +24,7 @@ export interface RecoveryDrillComponent {
     | 'catalog'
     | 'payments'
     | 'sales'
+    | 'daily-closes'
     | 'scale-fleet'
     | 'product-assets'
     | 'evidence-attachments'

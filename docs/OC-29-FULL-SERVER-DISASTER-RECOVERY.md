@@ -57,6 +57,7 @@ Only allowlisted paths can enter an archive:
 catalog.json
 payments.json
 sales.json
+daily-closes.json
 scale-fleet.json
 
 assets/*.jpg|jpeg|png|webp
@@ -72,6 +73,7 @@ Conceptually this protects:
 - shared catalog and price-history snapshot;
 - Payment Core historical order records;
 - server-authoritative completed sales ledger;
+- immutable OC-33 daily close revisions;
 - documented DIGI RM-60 fleet state;
 - product/Showcase image assets;
 - OC-27 evidence binaries and metadata;
@@ -221,6 +223,7 @@ Protected live targets are:
 catalog.json
 payments.json
 sales.json
+daily-closes.json
 scale-fleet.json
 assets/
 evidence/attachments/

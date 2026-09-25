@@ -369,7 +369,7 @@ Open:
 http://HOST:8787/piloto/desastre
 ~~~
 
-OC-29 protects the allowlisted ORBI server state required to reconstruct the pilot after losing the mini-PC/server: catalog, Payment Core audit records, the server-authoritative sales ledger, RM-60 fleet state, product images, OC-27 evidence files and OC-28 pilot backups.
+OC-29 protects the allowlisted ORBI server state required to reconstruct the pilot after losing the mini-PC/server: catalog, Payment Core audit records, the server-authoritative sales ledger, immutable OC-33 daily closes, RM-60 fleet state, product images, OC-27 evidence files and OC-28 pilot backups.
 
 A manual full archive first creates a fresh OC-28 browser-state snapshot, then packages the server data into a portable `.orbi-dr.gz` archive. Every internal file has its own SHA-256, and the exact compressed archive has a second SHA-256.
 
@@ -390,7 +390,7 @@ http://HOST:8787/piloto/certificacion
 
 OC-30 tests an existing OC-29 archive without restoring it over the live server.
 
-The drill verifies the whole compressed archive, reconstructs every archived file into an isolated temporary ORBI data directory, re-hashes the staged files and reopens reconstructed catalog, Payment Core history, server-authoritative sales, RM-60 fleet state, product images, OC-27 evidence and OC-28 backups through their real store implementations where present.
+The drill verifies the whole compressed archive, reconstructs every archived file into an isolated temporary ORBI data directory, re-hashes the staged files and reopens reconstructed catalog, Payment Core history, server-authoritative sales, OC-33 daily closes, RM-60 fleet state, product images, OC-27 evidence and OC-28 backups through their real store implementations where present.
 
 The result distinguishes archive failure from ordinary live drift:
 
