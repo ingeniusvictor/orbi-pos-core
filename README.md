@@ -41,6 +41,7 @@ The current working slice includes:
 - `/piloto/migracion` controlled migration runbook with GO/NO-GO, critical evidence checks and mandatory rollback flow;
 - `/piloto/evidencia` central evidence/incident ledger with audited status transitions and sanitized export;
 - `/piloto/expedientes` case binder with validated JPG/PNG/WebP/PDF evidence files, SHA-256 integrity metadata and ledger linking;
+- `/piloto/respaldo` server + portable backup/recovery for browser-local pilot control state, with selective restore and automatic pre-restore safety snapshot;
 - direct `?view=` links for opening specific admin workspaces;
 - simple daily sales summary.
 
@@ -129,7 +130,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-27 Evidence Attachments & Case Binder
+**Milestone:** OC-28 Pilot State Backup & Recovery Bundle
 
 
 ## TV pilot on Windows
@@ -337,3 +338,20 @@ Evidence files use opaque server filenames, preserve the original filename only 
 The pilot exposes no evidence-file delete endpoint. Unlinking a file from a case changes only the binder relationship; the binary remains stored.
 
 Binary evidence must be reviewed before upload because ORBI validates format/integrity, not whether a PDF/photo contains secrets or personal data.
+
+
+## Pilot backup & recovery
+
+Open:
+
+~~~text
+http://HOST:8787/piloto/respaldo
+~~~
+
+OC-28 protects the six browser-local pilot-control modules: Levantamiento, Propuesta, Production Gate, Migration Runbook, Evidence Ledger and Case Binder.
+
+Backups can be saved on the trusted-LAN ORBI server with SHA-256 metadata or downloaded as portable JSON. Restores are selective and first require a successful automatic pre-restore snapshot of the current state.
+
+The backup records catalog revision/product-count and OC-27 attachment metadata as references only. It does not publish or restore catalog data, payment state, RM-60 data, SII state or binary evidence files.
+
+OC-28 exposes no backup DELETE endpoint.
