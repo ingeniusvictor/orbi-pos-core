@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { categories } from './catalog'
 import { loadCatalog, loadPriceHistory, saveCatalog, savePriceHistory } from './catalog-storage'
 import { PriceBoard } from './components/PriceBoard'
@@ -21,35 +21,23 @@ import { EvidenceCaseBinder } from './components/EvidenceCaseBinder'
 import { PilotBackupRecovery } from './components/PilotBackupRecovery'
 import { ServerDisasterRecovery } from './components/ServerDisasterRecovery'
 import { RecoveryDrillCertification } from './components/RecoveryDrillCertification'
+import { SalesLedger } from './components/SalesLedger'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
-import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
+import { cartTotal, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
 import { resolveProductImageUrl } from './asset-api'
 import { demoProducts } from './demo-catalog'
+import { createClientSaleRequestId, createServerSale, listServerSales } from './sales-api'
 
-const SALES_KEY = 'orbi-pos:pilot-sales'
+type AppView = 'sale' | 'sales' | 'prices' | 'products' | 'scale' | 'payments' | 'showcase' | 'discovery' | 'proposal' | 'diagnostics'
 
-type AppView = 'sale' | 'prices' | 'products' | 'scale' | 'payments' | 'showcase' | 'discovery' | 'proposal' | 'diagnostics'
-
-const appViews: AppView[] = ['sale', 'prices', 'products', 'scale', 'payments', 'showcase', 'discovery', 'proposal', 'diagnostics']
+const appViews: AppView[] = ['sale', 'sales', 'prices', 'products', 'scale', 'payments', 'showcase', 'discovery', 'proposal', 'diagnostics']
 
 function initialAppView(): AppView {
   const requested = new URLSearchParams(window.location.search).get('view')
   return requested && appViews.includes(requested as AppView)
     ? requested as AppView
     : 'sale'
-}
-
-function loadSales(): Sale[] {
-  try {
-    return JSON.parse(localStorage.getItem(SALES_KEY) ?? '[]') as Sale[]
-  } catch {
-    return []
-  }
-}
-
-function saveSales(sales: Sale[]) {
-  localStorage.setItem(SALES_KEY, JSON.stringify(sales))
 }
 
 function unitLabel(unitType: UnitType) {
@@ -118,10 +106,16 @@ function ProductDialog({
   )
 }
 
-function SaleView({ products, sales, setSales }: {
+function SaleView({
+  products,
+  sales,
+  setSales,
+  salesStatus,
+}: {
   products: Product[]
   sales: Sale[]
   setSales: (updater: (sales: Sale[]) => Sale[]) => void
+  salesStatus: 'loading' | 'ready' | 'offline'
 }) {
   const [categoryId, setCategoryId] = useState('all')
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
@@ -129,6 +123,9 @@ function SaleView({ products, sales, setSales }: {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
   const [notice, setNotice] = useState('')
   const [paymentOpen, setPaymentOpen] = useState(false)
+  const [checkoutWorking, setCheckoutWorking] = useState(false)
+  const saleRequestId = useRef(createClientSaleRequestId())
+  const saleCreatedAt = useRef(new Date().toISOString())
 
   const visibleProducts = useMemo(
     () => products.filter((product) => product.active && (categoryId === 'all' || product.categoryId === categoryId)),
@@ -140,31 +137,71 @@ function SaleView({ products, sales, setSales }: {
   const todayTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0)
   const total = cartTotal(cart)
 
-  function recordSale(payment?: SalePayment) {
-    const sale = completeSale(cart, paymentMethod, payment)
-    setSales((current) => [sale, ...current])
-    setCart([])
-    setPaymentOpen(false)
-    setNotice(`Venta registrada · ${formatCLP(sale.total)} · ${paymentLabel(paymentMethod)}`)
-    window.setTimeout(() => setNotice(''), 3200)
+  function resetSaleIdentity() {
+    saleRequestId.current = createClientSaleRequestId()
+    saleCreatedAt.current = new Date().toISOString()
   }
 
-  function checkout() {
-    if (!cart.length) return
+  function showNotice(message: string, timeout = 4200) {
+    setNotice(message)
+    window.setTimeout(() => setNotice(''), timeout)
+  }
+
+  async function persistSale(payment?: SalePayment) {
+    const sale = await createServerSale({
+      clientRequestId: saleRequestId.current,
+      createdAt: saleCreatedAt.current,
+      lines: cart,
+      paymentMethod,
+      total,
+      payment,
+    })
+
+    setSales((current) => [
+      sale,
+      ...current.filter((candidate) => candidate.id !== sale.id),
+    ])
+    setCart([])
+    setPaymentOpen(false)
+    resetSaleIdentity()
+    showNotice(
+      `Venta confirmada en servidor · ${formatCLP(sale.total)} · ${paymentLabel(paymentMethod)}`,
+    )
+    return sale
+  }
+
+  async function checkout() {
+    if (!cart.length || checkoutWorking) return
 
     if (paymentMethod === 'debit' || paymentMethod === 'credit') {
       setPaymentOpen(true)
       return
     }
 
-    recordSale()
+    setCheckoutWorking(true)
+    try {
+      await persistSale()
+    } catch (reason) {
+      showNotice(
+        `El servidor no confirmó la venta. El carrito sigue abierto · ${(reason as Error).message}`,
+        6000,
+      )
+    } finally {
+      setCheckoutWorking(false)
+    }
   }
 
   return (
     <>
       <div className="daily-ribbon">
-        <div><small>Ventas hoy</small><strong>{formatCLP(todayTotal)}</strong></div>
-        <span>{todaySales.length} operaciones</span>
+        <div><small>Ventas servidor hoy</small><strong>{formatCLP(todayTotal)}</strong></div>
+        <span>
+          {salesStatus === 'ready'
+            ? `${todaySales.length} operaciones confirmadas`
+            : salesStatus === 'loading'
+              ? 'Consultando ledger…'
+              : 'Servidor de ventas no disponible'}
+        </span>
       </div>
 
       <main className="workspace">
@@ -214,13 +251,13 @@ function SaleView({ products, sales, setSales }: {
         <aside className="cart-panel">
           <div className="cart-heading">
             <div><p className="eyebrow">Venta actual</p><h2>{cart.length ? `${cart.length} línea${cart.length === 1 ? '' : 's'}` : 'Carrito vacío'}</h2></div>
-            {cart.length ? <button className="link-danger" onClick={() => setCart([])}>Vaciar</button> : null}
+            {cart.length ? <button className="link-danger" onClick={() => setCart([])} disabled={checkoutWorking || paymentOpen}>Vaciar</button> : null}
           </div>
           <div className="cart-lines">
             {cart.length ? cart.map((line) => (
               <div className="cart-line" key={line.id}>
                 <div><strong>{line.name}</strong><span>{line.quantity.toFixed(line.unitType === 'KG' ? 3 : 0).replace('.', ',')} {unitLabel(line.unitType)} × {formatCLP(line.unitPrice)}</span></div>
-                <div className="line-price"><strong>{formatCLP(line.subtotal)}</strong><button onClick={() => setCart((current) => current.filter((item) => item.id !== line.id))}>×</button></div>
+                <div className="line-price"><strong>{formatCLP(line.subtotal)}</strong><button disabled={checkoutWorking || paymentOpen} onClick={() => setCart((current) => current.filter((item) => item.id !== line.id))}>×</button></div>
               </div>
             )) : <div className="cart-empty"><div>🛒</div><strong>Empieza tocando un producto</strong><span>El subtotal aparecerá aquí.</span></div>}
           </div>
@@ -234,19 +271,32 @@ function SaleView({ products, sales, setSales }: {
                 ['credit', '▣', 'Crédito'],
                 ['transfer', '↗', 'Transferencia'],
               ] as const).map(([value, icon, label]) => (
-                <button key={value} className={paymentMethod === value ? 'payment active' : 'payment'} onClick={() => setPaymentMethod(value)}>
+                <button
+                  key={value}
+                  disabled={checkoutWorking || paymentOpen}
+                  className={paymentMethod === value ? 'payment active' : 'payment'}
+                  onClick={() => setPaymentMethod(value)}
+                >
                   <span>{icon}</span>{label}
                 </button>
               ))}
             </div>
-            <button className="primary checkout-button" onClick={checkout} disabled={!cart.length}>
-              {paymentMethod === 'debit' || paymentMethod === 'credit'
-                ? `Cobrar con Point ${cart.length ? formatCLP(total) : ''}`
-                : `Registrar cobro ${cart.length ? formatCLP(total) : ''}`}
+            <button
+              className="primary checkout-button"
+              onClick={() => { void checkout() }}
+              disabled={!cart.length || checkoutWorking}
+            >
+              {checkoutWorking
+                ? 'Registrando en servidor…'
+                : paymentMethod === 'debit' || paymentMethod === 'credit'
+                  ? `Cobrar con Point ${cart.length ? formatCLP(total) : ''}`
+                  : `Registrar cobro ${cart.length ? formatCLP(total) : ''}`}
             </button>
-            {paymentMethod === 'debit' || paymentMethod === 'credit' ? (
-              <small className="point-checkout-note">La venta se cerrará solo cuando Point confirme el pago.</small>
-            ) : null}
+            <small className="point-checkout-note">
+              {paymentMethod === 'debit' || paymentMethod === 'credit'
+                ? 'La venta se cierra solo después de Point processed + confirmación del ledger servidor.'
+                : 'El carrito se limpia solo cuando sales.json confirma la persistencia.'}
+            </small>
           </div>
         </aside>
       </main>
@@ -258,13 +308,14 @@ function SaleView({ products, sales, setSales }: {
           onAdd={(product, quantity) => setCart((current) => [...current, makeCartLine(product, quantity)])}
         />
       ) : null}
+
       {paymentOpen && (paymentMethod === 'debit' || paymentMethod === 'credit') ? (
         <PaymentDialog
           amount={total}
           method={paymentMethod}
           onClose={() => setPaymentOpen(false)}
-          onApproved={(order) => {
-            recordSale({
+          onApproved={async (order) => {
+            await persistSale({
               provider: order.provider,
               orderId: order.id,
               providerOrderId: order.providerOrderId,
@@ -274,6 +325,7 @@ function SaleView({ products, sales, setSales }: {
           }}
         />
       ) : null}
+
       {notice ? <div className="toast">{notice}</div> : null}
     </>
   )
@@ -283,12 +335,31 @@ function OperationalApp() {
   const [view, setView] = useState<AppView>(initialAppView)
   const [products, setProducts] = useState<Product[]>(loadCatalog)
   const [history, setHistory] = useState<PriceChange[]>(loadPriceHistory)
-  const [sales, setSales] = useState<Sale[]>(loadSales)
+  const [sales, setSales] = useState<Sale[]>([])
+  const [salesStatus, setSalesStatus] = useState<'loading' | 'ready' | 'offline'>('loading')
   const sync = useCatalogSync({ products, setProducts, setPriceHistory: setHistory })
 
   useEffect(() => saveCatalog(products), [products])
   useEffect(() => savePriceHistory(history), [history])
-  useEffect(() => saveSales(sales), [sales])
+
+  useEffect(() => {
+    let active = true
+    setSalesStatus('loading')
+    listServerSales()
+      .then((records) => {
+        if (!active) return
+        setSales(records)
+        setSalesStatus('ready')
+      })
+      .catch(() => {
+        if (!active) return
+        setSales([])
+        setSalesStatus('offline')
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     const url = new URL(window.location.href)
@@ -315,6 +386,7 @@ function OperationalApp() {
         </div>
         <nav className="main-nav">
           <button className={view === 'sale' ? 'active' : ''} onClick={() => setView('sale')}>Venta</button>
+          <button className={view === 'sales' ? 'active' : ''} onClick={() => setView('sales')}>Ventas</button>
           <button className={view === 'prices' ? 'active' : ''} onClick={() => setView('prices')}>Precios</button>
           <button className={view === 'products' ? 'active' : ''} onClick={() => setView('products')}>Productos</button>
           <button className={view === 'scale' ? 'active' : ''} onClick={() => setView('scale')}>Balanza</button>
@@ -341,7 +413,15 @@ function OperationalApp() {
           : `Catálogo compartido ${sync.storeId} · Showcase consulta cambios cada 3 s · RM-60 todavía no recibe precios automáticamente.`}
       </div>
 
-      {view === 'sale' ? <SaleView products={products} sales={sales} setSales={setSales} /> : null}
+      {view === 'sale' ? (
+        <SaleView
+          products={products}
+          sales={sales}
+          setSales={setSales}
+          salesStatus={salesStatus}
+        />
+      ) : null}
+      {view === 'sales' ? <SalesLedger /> : null}
       {view === 'prices' ? (
         <PriceBoard
           categories={categories}
