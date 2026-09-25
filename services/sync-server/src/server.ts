@@ -18,6 +18,8 @@ import { SaleService } from './sale-service.js'
 import { PaymentSaleReconciliationService } from './payment-sale-reconciliation.js'
 import { DailyCloseStore } from './daily-close-store.js'
 import { DailyCloseService } from './daily-close-service.js'
+import { CashDrawerStore } from './cash-drawer-store.js'
+import { CashDrawerService } from './cash-drawer-service.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -38,6 +40,12 @@ const dailyCloseService = new DailyCloseService(
   dailyCloseStore,
   saleStore,
   paymentStore,
+  process.env.ORBI_BUSINESS_TIME_ZONE ?? 'America/Santiago',
+)
+const cashDrawerStore = new CashDrawerStore(DATA_DIR)
+const cashDrawerService = new CashDrawerService(
+  cashDrawerStore,
+  saleStore,
   process.env.ORBI_BUSINESS_TIME_ZONE ?? 'America/Santiago',
 )
 const scaleFleetStore = new ScaleFleetStore(DATA_DIR)
@@ -70,6 +78,7 @@ app.get('/api/health', (_req, res) => {
       serverSalesLedger: true,
       paymentSaleReconciliation: true,
       dailyClose: true,
+      cashDrawer: true,
       businessTimeZone: process.env.ORBI_BUSINESS_TIME_ZONE ?? 'America/Santiago',
     },
   })
@@ -418,6 +427,71 @@ app.put('/api/stores/:storeId/scales/fleet', async (req, res) => {
     }))
   } catch (error) {
     return res.status(400).json({ code: 'SCALE_FLEET_SAVE_FAILED', message: (error as Error).message })
+  }
+})
+
+app.get('/api/stores/:storeId/cash-drawer', async (req, res) => {
+  try {
+    const limit = Number(req.query.limit ?? 200)
+    return res.json(await cashDrawerService.list(req.params.storeId, limit))
+  } catch (error) {
+    return res.status(400).json({ code: 'CASH_DRAWER_LIST_FAILED', message: (error as Error).message })
+  }
+})
+
+app.get('/api/stores/:storeId/cash-drawer/active', async (req, res) => {
+  try {
+    return res.json(await cashDrawerService.active(req.params.storeId))
+  } catch (error) {
+    return res.status(400).json({ code: 'CASH_DRAWER_ACTIVE_FAILED', message: (error as Error).message })
+  }
+})
+
+app.post('/api/stores/:storeId/cash-drawer/open', async (req, res) => {
+  try {
+    return res.status(201).json(await cashDrawerService.open(
+      req.params.storeId,
+      req.body?.openingFloat,
+    ))
+  } catch (error) {
+    return res.status(409).json({ code: 'CASH_DRAWER_OPEN_FAILED', message: (error as Error).message })
+  }
+})
+
+app.get('/api/stores/:storeId/cash-drawer/:sessionId/preview', async (req, res) => {
+  try {
+    return res.json(await cashDrawerService.preview(
+      req.params.storeId,
+      req.params.sessionId,
+    ))
+  } catch (error) {
+    return res.status(400).json({ code: 'CASH_DRAWER_PREVIEW_FAILED', message: (error as Error).message })
+  }
+})
+
+app.post('/api/stores/:storeId/cash-drawer/:sessionId/movements', async (req, res) => {
+  try {
+    return res.status(201).json(await cashDrawerService.addMovement(
+      req.params.storeId,
+      req.params.sessionId,
+      req.body?.type,
+      req.body?.amount,
+      req.body?.reason,
+    ))
+  } catch (error) {
+    return res.status(409).json({ code: 'CASH_DRAWER_MOVEMENT_FAILED', message: (error as Error).message })
+  }
+})
+
+app.post('/api/stores/:storeId/cash-drawer/:sessionId/close', async (req, res) => {
+  try {
+    return res.json(await cashDrawerService.close(
+      req.params.storeId,
+      req.params.sessionId,
+      req.body?.countedCash,
+    ))
+  } catch (error) {
+    return res.status(409).json({ code: 'CASH_DRAWER_CLOSE_FAILED', message: (error as Error).message })
   }
 })
 
