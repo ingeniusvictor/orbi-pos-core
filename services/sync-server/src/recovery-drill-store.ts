@@ -634,14 +634,13 @@ export class RecoveryDrillStore {
       .find((item) => item.id === archiveId)
 
     let sandboxRoot: string | null = null
-    let sandboxCleaned = false
-
-    const checks: RecoveryDrillCheck[] = []
-    let components: RecoveryDrillComponent[] = []
+    let archiveSha256 = knownMetadata?.sha256 ?? null
     let archiveFileCount = knownMetadata?.fileCount ?? 0
     let archiveBytes = knownMetadata?.totalFileBytes ?? 0
     let stagedFiles = 0
     let stagedBytes = 0
+    const checks: RecoveryDrillCheck[] = []
+    let components: RecoveryDrillComponent[] = []
     let liveDrift: RecoveryDrillLiveDrift = {
       comparisonAvailable: false,
       matching: [],
@@ -650,6 +649,8 @@ export class RecoveryDrillStore {
       archiveOnly: [],
       note: 'Live coverage comparison was not completed.',
     }
+    let result: RecoveryDrillResult = 'failed'
+    let failureWarning = 'Certification failed before proving a complete isolated reconstruction.'
 
     try {
       const { metadata, bundle } = await this.disasterRecovery.loadValidatedArchive(
@@ -657,6 +658,7 @@ export class RecoveryDrillStore {
         archiveId,
       )
 
+      archiveSha256 = metadata.sha256
       archiveFileCount = bundle.summary.fileCount
       archiveBytes = bundle.summary.totalFileBytes
       checks.push(check(
@@ -685,8 +687,6 @@ export class RecoveryDrillStore {
       )
       checks.push(...componentResults.checks)
       components = componentResults.components
-
-      const componentFailure = components.some((item) => item.status === 'fail')
 
       try {
         const liveManifest = await this.disasterRecovery.currentManifest(storeId)
@@ -726,48 +726,21 @@ export class RecoveryDrillStore {
         ))
       }
 
-      const completedAt = this.now()
-      const completedMs = this.clockMs()
-      const anyFailure = componentFailure
+      const anyFailure = components.some((item) => item.status === 'fail')
         || checks.some((item) => item.status === 'fail')
       const hasDrift = !liveDrift.comparisonAvailable
         || liveDrift.changed.length > 0
         || liveDrift.newLive.length > 0
         || liveDrift.archiveOnly.length > 0
 
-      const certificate: RecoveryDrillCertificate = {
-        format: RECOVERY_DRILL_FORMAT,
-        id,
-        storeId,
-        archiveId,
-        archiveSha256: metadata.sha256,
-        startedAt,
-        completedAt,
-        durationMs: Math.max(0, completedMs - startedMs),
-        result: anyFailure
-          ? 'failed'
-          : hasDrift
-            ? 'certified_with_drift'
-            : 'certified',
-        archiveFileCount,
-        archiveBytes,
-        stagedFiles,
-        stagedBytes,
-        checks,
-        components,
-        liveDrift,
-        safety: {
-          liveDataReplaced: false,
-          providerCallsMade: false,
-          siiActionsMade: false,
-          rm60WritesMade: false,
-          secretsCaptured: false,
-          sandboxCleaned: false,
-          warning: 'Certification reconstructs only inside an isolated temporary sandbox and never restores live data.',
-        },
-      }
-
-      return await this.save(storeId, certificate)
+      result = anyFailure
+        ? 'failed'
+        : hasDrift
+          ? 'certified_with_drift'
+          : 'certified'
+      failureWarning = anyFailure
+        ? 'One or more reconstruction/domain checks failed.'
+        : 'Certification reconstructs only inside an isolated temporary sandbox and never restores live data.'
     } catch (error) {
       checks.push(check(
         'drill-failure',
@@ -775,58 +748,52 @@ export class RecoveryDrillStore {
         'fail',
         (error as Error).message,
       ))
+      result = 'failed'
+    }
 
-      const certificate: RecoveryDrillCertificate = {
-        format: RECOVERY_DRILL_FORMAT,
-        id,
-        storeId,
-        archiveId,
-        archiveSha256: knownMetadata?.sha256 ?? null,
-        startedAt,
-        completedAt: this.now(),
-        durationMs: Math.max(0, this.clockMs() - startedMs),
-        result: 'failed',
-        archiveFileCount,
-        archiveBytes,
-        stagedFiles,
-        stagedBytes,
-        checks,
-        components,
-        liveDrift,
-        safety: {
-          liveDataReplaced: false,
-          providerCallsMade: false,
-          siiActionsMade: false,
-          rm60WritesMade: false,
-          secretsCaptured: false,
-          sandboxCleaned: false,
-          warning: 'Certification failed before proving a complete isolated reconstruction.',
-        },
-      }
-
-      return await this.save(storeId, certificate)
-    } finally {
-      if (sandboxRoot) {
-        try {
-          await rm(sandboxRoot, { recursive: true, force: true })
-          sandboxCleaned = true
-        } catch {
-          sandboxCleaned = false
-        }
-
-        // Update the persisted record with the cleanup outcome without changing
-        // the substantive drill result or any live store data.
-        try {
-          const current = await this.get(storeId, id)
-          if (current) {
-            current.certificate.safety.sandboxCleaned = sandboxCleaned
-            await this.save(storeId, current.certificate)
-          }
-        } catch {
-          // The original certification remains available even if cleanup
-          // status could not be rewritten.
-        }
+    let sandboxCleaned = true
+    if (sandboxRoot) {
+      try {
+        await rm(sandboxRoot, { recursive: true, force: true })
+      } catch (error) {
+        sandboxCleaned = false
+        checks.push(check(
+          'sandbox-cleanup',
+          'Limpieza del sandbox temporal',
+          'warning',
+          `Recovery drill completed but temporary sandbox cleanup failed: ${(error as Error).message}`,
+        ))
       }
     }
+
+    const certificate: RecoveryDrillCertificate = {
+      format: RECOVERY_DRILL_FORMAT,
+      id,
+      storeId,
+      archiveId,
+      archiveSha256,
+      startedAt,
+      completedAt: this.now(),
+      durationMs: Math.max(0, this.clockMs() - startedMs),
+      result,
+      archiveFileCount,
+      archiveBytes,
+      stagedFiles,
+      stagedBytes,
+      checks,
+      components,
+      liveDrift,
+      safety: {
+        liveDataReplaced: false,
+        providerCallsMade: false,
+        siiActionsMade: false,
+        rm60WritesMade: false,
+        secretsCaptured: false,
+        sandboxCleaned,
+        warning: failureWarning,
+      },
+    }
+
+    return await this.save(storeId, certificate)
   }
 }
