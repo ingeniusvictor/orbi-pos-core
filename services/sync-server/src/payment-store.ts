@@ -46,7 +46,7 @@ export class PaymentStore {
     const data = await this.read(storeId)
     return data.orders
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, Math.max(1, Math.min(limit, 500)))
+      .slice(0, Math.max(1, Math.min(limit, 1000)))
   }
 
   async get(storeId: string, id: string): Promise<PaymentOrderRecord | null> {

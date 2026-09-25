@@ -45,8 +45,8 @@ export class PaymentService {
     return this.runtime.providerId
   }
 
-  async list(storeId: string) {
-    return await this.store.list(storeId)
+  async list(storeId: string, limit = 100) {
+    return await this.store.list(storeId, limit)
   }
 
   async create(
