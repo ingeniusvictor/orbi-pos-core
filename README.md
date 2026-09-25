@@ -133,7 +133,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-31 Server-Authoritative Sales Ledger & Recovery
+**Milestone:** OC-32 Payment-to-Sale Reconciliation & Orphan Recovery
 
 
 ## TV pilot on Windows
@@ -432,3 +432,45 @@ Older browser-only records from `orbi-pos:pilot-sales` are not auto-imported. Th
 OC-29 now archives/restores `sales.json`, and OC-30 reconstructs and validates the sales ledger in its isolated recovery drill.
 
 OC-31 does not issue SII documents and does not write to DIGI RM-60 scales.
+
+
+## Payment-to-sale reconciliation & orphan recovery
+
+OC-32 closes the durable-payment gap after OC-31.
+
+The **Pagos** workspace now reconciles local Payment Core history against the
+server-authoritative sales ledger without contacting Mercado Pago:
+
+~~~text
+GET /api/stores/<storeId>/payments/reconciliation
+~~~
+
+Each retained card order is classified as:
+
+- `linked` — the Payment Core order already backs one immutable ORBI sale;
+- `orphan_processed` — payment is `processed` but no sale references it;
+- `refunded_after_sale` — an immutable sale exists but the locally recorded payment state is now `refunded`;
+- `unlinked_nonprocessed` — no completed sale is expected yet.
+
+A `processed` payment without a sale is treated as a critical operator state:
+**do not charge again**.
+
+From **Pagos → Recuperar venta**, ORBI opens the normal Sale workspace in a
+locked recovery mode. The operator must reconstruct the actual sold lines from
+operational evidence. ORBI never guesses missing products from the payment
+amount.
+
+Recovery rules:
+
+- no new Point order is created;
+- no payment-provider call is made;
+- debit/credit method is locked to the original payment;
+- the reconstructed cart must equal the original processed amount exactly;
+- the original provider/order/reference/terminal trace is reused;
+- the recovery sale uses a deterministic `clientRequestId` derived from the
+  durable ORBI Payment Core order ID;
+- the OC-31 server validations run again before `sales.json` accepts the sale;
+- retries remain idempotent.
+
+OC-32 does not issue SII documents, write to RM-60 scales, or modify an existing
+completed sale.

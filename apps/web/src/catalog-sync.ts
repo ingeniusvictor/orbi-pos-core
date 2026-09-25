@@ -19,6 +19,10 @@ export interface OrbiSystemHealth {
   capabilities?: {
     sharedCatalog?: boolean
     sharedImages?: boolean
+    payments?: boolean
+    paymentProvider?: string
+    serverSalesLedger?: boolean
+    paymentSaleReconciliation?: boolean
   }
 }
 
