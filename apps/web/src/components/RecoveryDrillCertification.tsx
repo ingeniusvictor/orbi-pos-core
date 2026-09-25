@@ -35,6 +35,7 @@ const statusLabels: Record<RecoveryDrillCheckStatus, string> = {
 const componentLabels: Record<string, string> = {
   catalog: 'Catálogo + precios',
   payments: 'Payment Core histórico',
+  sales: 'Ledger de ventas',
   'scale-fleet': 'Fleet DIGI RM-60',
   'product-assets': 'Imágenes de productos',
   'evidence-attachments': 'Evidencia OC-27',
