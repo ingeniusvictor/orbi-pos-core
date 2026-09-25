@@ -19,6 +19,7 @@ import { PilotBackupStore } from './pilot-backup-store.js'
 import { ScaleFleetStore } from './scale-fleet-store.js'
 import { SaleStore } from './sale-store.js'
 import { DailyCloseStore } from './daily-close-store.js'
+import { CashDrawerStore } from './cash-drawer-store.js'
 import {
   ServerDisasterRecoveryStore,
   isAllowedServerDrPath,
@@ -52,6 +53,7 @@ export interface RecoveryDrillComponent {
     | 'payments'
     | 'sales'
     | 'daily-closes'
+    | 'cash-drawer'
     | 'scale-fleet'
     | 'product-assets'
     | 'evidence-attachments'
@@ -734,6 +736,142 @@ export class RecoveryDrillStore {
         checks.push(check(
           'daily-close-domain',
           'Cierres diarios recuperables',
+          'fail',
+          (error as Error).message,
+        ))
+      }
+    }
+
+    const cashDrawerFile = fileMap.get('cash-drawer.json')
+    if (!cashDrawerFile) {
+      components.push(component(
+        'cash-drawer',
+        'not_present',
+        0,
+        0,
+        'cash-drawer.json is not present in this archive.',
+      ))
+    } else {
+      try {
+        const raw = await readFile(path.join(stagedStoreDir, 'cash-drawer.json'))
+        const parsed = parseJson(raw, 'cash-drawer.json')
+        if (!Array.isArray(parsed.sessions)) {
+          throw new Error('cash drawer session history is not an array')
+        }
+
+        let openSessions = 0
+        for (const [index, candidate] of parsed.sessions.entries()) {
+          if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+            throw new Error(`invalid cash drawer session at index ${index}`)
+          }
+          const session = candidate as Record<string, any>
+          if (session.storeId !== storeId) {
+            throw new Error(`cash drawer storeId mismatch at index ${index}`)
+          }
+          if (typeof session.id !== 'string' || !session.id.startsWith('DRAWER-')) {
+            throw new Error(`invalid cash drawer id at index ${index}`)
+          }
+          if (!['open', 'closed'].includes(String(session.status))) {
+            throw new Error(`invalid cash drawer status at index ${index}`)
+          }
+          if (!Number.isInteger(session.openingFloat) || session.openingFloat < 0) {
+            throw new Error(`invalid opening float at index ${index}`)
+          }
+          if (!Array.isArray(session.movements)) {
+            throw new Error(`cash drawer movements missing at index ${index}`)
+          }
+
+          const movementIds = new Set<string>()
+          let paidIn = 0
+          let paidOut = 0
+          for (const [movementIndex, rawMovement] of session.movements.entries()) {
+            if (!rawMovement || typeof rawMovement !== 'object' || Array.isArray(rawMovement)) {
+              throw new Error(`invalid cash drawer movement ${index}:${movementIndex}`)
+            }
+            const movement = rawMovement as Record<string, any>
+            if (
+              typeof movement.id !== 'string'
+              || movementIds.has(movement.id)
+              || !['paid_in', 'paid_out'].includes(String(movement.type))
+              || !Number.isInteger(movement.amount)
+              || movement.amount <= 0
+              || typeof movement.reason !== 'string'
+              || movement.reason.trim().length < 2
+            ) {
+              throw new Error(`invalid cash drawer movement ${index}:${movementIndex}`)
+            }
+            movementIds.add(movement.id)
+            if (movement.type === 'paid_in') paidIn += movement.amount
+            else paidOut += movement.amount
+          }
+
+          if (session.status === 'open') {
+            openSessions += 1
+          } else {
+            if (
+              !session.cashSales
+              || !Number.isInteger(session.cashSales.count)
+              || session.cashSales.count < 0
+              || !Number.isInteger(session.cashSales.total)
+              || session.cashSales.total < 0
+            ) {
+              throw new Error(`invalid closed cash sales snapshot at index ${index}`)
+            }
+            const expected = session.openingFloat + session.cashSales.total + paidIn - paidOut
+            if (
+              session.paidInTotal !== paidIn
+              || session.paidOutTotal !== paidOut
+              || session.expectedCash !== expected
+              || !Number.isInteger(session.countedCash)
+              || session.countedCash < 0
+              || session.variance !== session.countedCash - expected
+            ) {
+              throw new Error(`cash drawer reconciliation math mismatch at index ${index}`)
+            }
+            if (
+              typeof session.sourceFingerprint !== 'string'
+              || !/^[a-f0-9]{64}$/.test(session.sourceFingerprint)
+            ) {
+              throw new Error(`invalid cash drawer fingerprint at index ${index}`)
+            }
+          }
+        }
+
+        if (openSessions > 1) {
+          throw new Error('cash drawer history contains more than one open session')
+        }
+
+        const sessions = await new CashDrawerStore(sandboxDataDir).list(storeId, 5_000)
+        if (sessions.length !== parsed.sessions.length) {
+          throw new Error(
+            `CashDrawerStore reopened ${sessions.length}/${parsed.sessions.length} session(s)`,
+          )
+        }
+
+        components.push(component(
+          'cash-drawer',
+          'pass',
+          1,
+          cashDrawerFile.size,
+          `CashDrawerStore reopened ${sessions.length} immutable session(s) without provider calls.`,
+        ))
+        checks.push(check(
+          'cash-drawer-domain',
+          'Sesiones de caja recuperables',
+          'pass',
+          'Movement identities, sums, expected cash and closed-session variance validated.',
+        ))
+      } catch (error) {
+        components.push(component(
+          'cash-drawer',
+          'fail',
+          1,
+          cashDrawerFile.size,
+          (error as Error).message,
+        ))
+        checks.push(check(
+          'cash-drawer-domain',
+          'Sesiones de caja recuperables',
           'fail',
           (error as Error).message,
         ))
