@@ -85,6 +85,7 @@ const EXACT_FILES = new Set([
   'payments.json',
   'sales.json',
   'daily-closes.json',
+  'cash-drawer.json',
   'scale-fleet.json',
 ])
 
@@ -93,6 +94,7 @@ const PROTECTED_TARGETS = [
   'payments.json',
   'sales.json',
   'daily-closes.json',
+  'cash-drawer.json',
   'scale-fleet.json',
   'assets',
   'evidence/attachments',
@@ -153,6 +155,7 @@ function componentFor(relative: string) {
   if (relative === 'payments.json') return 'payments'
   if (relative === 'sales.json') return 'sales'
   if (relative === 'daily-closes.json') return 'daily-closes'
+  if (relative === 'cash-drawer.json') return 'cash-drawer'
   if (relative === 'scale-fleet.json') return 'scale-fleet'
   if (relative.startsWith('assets/')) return 'product-assets'
   if (relative.startsWith('evidence/attachments/')) return 'evidence-attachments'
@@ -389,6 +392,7 @@ export class ServerDisasterRecoveryStore {
         this.readOptionalFile(storeId, 'payments.json'),
         this.readOptionalFile(storeId, 'sales.json'),
         this.readOptionalFile(storeId, 'daily-closes.json'),
+        this.readOptionalFile(storeId, 'cash-drawer.json'),
         this.readOptionalFile(storeId, 'scale-fleet.json'),
       ])
     ).filter((item): item is ServerDrFile => Boolean(item))

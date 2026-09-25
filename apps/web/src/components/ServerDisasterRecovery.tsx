@@ -26,6 +26,7 @@ const componentLabels: Record<string, string> = {
   payments: 'Payment Core audit',
   sales: 'Ledger de ventas',
   'daily-closes': 'Cierres diarios OC-33',
+  'cash-drawer': 'Sesiones de caja OC-34',
   'scale-fleet': 'Fleet DIGI RM-60',
   'product-assets': 'Imágenes de productos',
   'evidence-attachments': 'Evidencia OC-27',
@@ -117,6 +118,7 @@ export function ServerDisasterRecovery() {
       'Payment Core: registros históricos, sin credenciales',
       'Ledger servidor de ventas completadas',
       'Cierres diarios inmutables OC-33',
+      'Sesiones y arqueos físicos de caja OC-34',
       'Configuración documentada de las 4 RM-60',
       'Imágenes JPG/PNG/WebP del catálogo',
       'Fotos/PDF + metadata de evidencia OC-27',
@@ -273,7 +275,7 @@ export function ServerDisasterRecovery() {
           </article>
           <article>
             <span>COMPONENTES</span>
-            <strong>{latest?.components.length ?? 7}</strong>
+            <strong>{latest?.components.length ?? 9}</strong>
             <small>servidor allowlisted</small>
           </article>
           <article>

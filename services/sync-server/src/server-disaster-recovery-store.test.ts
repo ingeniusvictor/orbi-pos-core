@@ -129,6 +129,37 @@ async function seedStore(dataDir: string) {
     'utf8',
   )
   await writeFile(
+    path.join(root, 'cash-drawer.json'),
+    JSON.stringify({
+      sessions: [{
+        id: 'DRAWER-12345678123412341234123456789012',
+        storeId: 'el-chunchito',
+        businessDate: '2026-09-25',
+        businessTimeZone: 'America/Santiago',
+        openedAt: '2026-09-25T13:00:00.000Z',
+        closedAt: '2026-09-25T23:05:00.000Z',
+        openingFloat: 20000,
+        status: 'closed',
+        movements: [{
+          id: 'MOVE-12345678123412341234123456789013',
+          type: 'paid_in',
+          amount: 1000,
+          reason: 'Cambio adicional',
+          createdAt: '2026-09-25T14:00:00.000Z',
+        }],
+        cashSales: { count: 1, total: 5610, through: '2026-09-25T23:05:00.000Z' },
+        paidInTotal: 1000,
+        paidOutTotal: 0,
+        expectedCash: 26610,
+        countedCash: 26500,
+        variance: -110,
+        sourceFingerprint: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+        audit: [],
+      }],
+    }),
+    'utf8',
+  )
+  await writeFile(
     path.join(root, 'scale-fleet.json'),
     JSON.stringify({
       storeId: 'el-chunchito',
@@ -185,6 +216,7 @@ describe('ServerDisasterRecoveryStore', () => {
     expect(paths).toContain('payments.json')
     expect(paths).toContain('sales.json')
     expect(paths).toContain('daily-closes.json')
+    expect(paths).toContain('cash-drawer.json')
     expect(paths).toContain('scale-fleet.json')
     expect(paths).toContain('assets/product-12345678.png')
     expect(paths).toContain('evidence/attachments/evidence-12345678-1234-1234-1234-123456789abc.pdf')
@@ -269,6 +301,11 @@ describe('ServerDisasterRecoveryStore', () => {
       JSON.stringify({ closes: [{ id: 'CLOSE-CHANGED' }] }),
       'utf8',
     )
+    await writeFile(
+      path.join(root, 'cash-drawer.json'),
+      JSON.stringify({ sessions: [{ id: 'DRAWER-CHANGED' }] }),
+      'utf8',
+    )
 
     const result = await store.restore(
       'el-chunchito',
@@ -293,6 +330,12 @@ describe('ServerDisasterRecoveryStore', () => {
       await readFile(path.join(root, 'daily-closes.json'), 'utf8'),
     ) as { closes: Array<{ id: string }> }
     expect(restoredCloses.closes[0].id).toBe('CLOSE-20260925-abcdef123456')
+
+    const restoredCashDrawer = JSON.parse(
+      await readFile(path.join(root, 'cash-drawer.json'), 'utf8'),
+    ) as { sessions: Array<{ id: string }> }
+    expect(restoredCashDrawer.sessions[0].id)
+      .toBe('DRAWER-12345678123412341234123456789012')
 
     const restoredAsset = await readFile(
       path.join(root, 'assets', 'product-12345678.png'),

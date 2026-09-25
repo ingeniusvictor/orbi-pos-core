@@ -57,7 +57,7 @@ Only allowlisted paths can enter an archive:
 catalog.json
 payments.json
 sales.json
-daily-closes.json
+daily-closes.json` and `cash-drawer.json
 scale-fleet.json
 
 assets/*.jpg|jpeg|png|webp

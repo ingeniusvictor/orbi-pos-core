@@ -14,6 +14,7 @@ import { RecoveryDrillStore } from './recovery-drill-store.js'
 import { ScaleFleetStore } from './scale-fleet-store.js'
 import { SaleStore } from './sale-store.js'
 import { DailyCloseStore } from './daily-close-store.js'
+import { CashDrawerStore } from './cash-drawer-store.js'
 import { ServerDisasterRecoveryStore } from './server-disaster-recovery-store.js'
 
 const dirs: string[] = []
@@ -137,6 +138,57 @@ async function seedRecoverableStore(dataDir: string) {
     createdAt: '2026-09-25T05:03:00.000Z',
   })
 
+  const cashDrawerStore = new CashDrawerStore(dataDir)
+  await cashDrawerStore.open('el-chunchito', {
+    id: 'DRAWER-12345678123412341234123456789012',
+    storeId: 'el-chunchito',
+    businessDate: '2026-09-25',
+    businessTimeZone: 'America/Santiago',
+    openedAt: '2026-09-25T05:00:00.000Z',
+    openingFloat: 20000,
+    status: 'open',
+    movements: [],
+    audit: [{
+      event: 'opened',
+      at: '2026-09-25T05:00:00.000Z',
+      actor: 'orbi-pos-server',
+      detail: 'cash_drawer_session',
+    }],
+  })
+  await cashDrawerStore.close(
+    'el-chunchito',
+    'DRAWER-12345678123412341234123456789012',
+    {
+      id: 'DRAWER-12345678123412341234123456789012',
+      storeId: 'el-chunchito',
+      businessDate: '2026-09-25',
+      businessTimeZone: 'America/Santiago',
+      openedAt: '2026-09-25T05:00:00.000Z',
+      closedAt: '2026-09-25T05:10:00.000Z',
+      openingFloat: 20000,
+      status: 'closed',
+      movements: [],
+      cashSales: { count: 1, total: 5610, through: '2026-09-25T05:10:00.000Z' },
+      paidInTotal: 0,
+      paidOutTotal: 0,
+      expectedCash: 25610,
+      countedCash: 25500,
+      variance: -110,
+      sourceFingerprint: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+      audit: [{
+        event: 'opened',
+        at: '2026-09-25T05:00:00.000Z',
+        actor: 'orbi-pos-server',
+        detail: 'cash_drawer_session',
+      }, {
+        event: 'closed',
+        at: '2026-09-25T05:10:00.000Z',
+        actor: 'orbi-pos-server',
+        detail: 'physical_count_reconciliation',
+      }],
+    },
+  )
+
   await new ScaleFleetStore(
     dataDir,
     () => '2026-09-25T05:00:00.000Z',
@@ -253,7 +305,7 @@ describe('RecoveryDrillStore', () => {
     const after = await readFile(catalogPath, 'utf8')
 
     expect(record.certificate.result).toBe('certified')
-    expect(record.certificate.stagedFiles).toBe(9)
+    expect(record.certificate.stagedFiles).toBe(10)
     expect(record.certificate.stagedBytes).toBeGreaterThan(0)
     expect(record.certificate.safety.liveDataReplaced).toBe(false)
     expect(record.certificate.safety.providerCallsMade).toBe(false)
@@ -265,6 +317,7 @@ describe('RecoveryDrillStore', () => {
     expect(byId.get('payments')?.status).toBe('pass')
     expect(byId.get('sales')?.status).toBe('pass')
     expect(byId.get('daily-closes')?.status).toBe('pass')
+    expect(byId.get('cash-drawer')?.status).toBe('pass')
     expect(byId.get('scale-fleet')?.status).toBe('pass')
     expect(byId.get('product-assets')?.status).toBe('pass')
     expect(byId.get('evidence-attachments')?.status).toBe('pass')

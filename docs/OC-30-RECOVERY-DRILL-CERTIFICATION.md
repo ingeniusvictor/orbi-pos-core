@@ -114,7 +114,7 @@ The drill does not call a payment provider.
 
 ### OC-33 daily closes
 
-When `daily-closes.json` is present:
+When `daily-closes.json` and `cash-drawer.json` is present:
 
 - parse the append-only close history;
 - verify store identity;
