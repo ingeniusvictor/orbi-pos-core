@@ -26,6 +26,25 @@ afterEach(async () => {
   await Promise.all(dirs.splice(0).map((dir) =>
     rm(dir, { recursive: true, force: true }),
   ))
+  it('deduplicates concurrent retries and exposes no sale delete API', async () => {
+    const { service, sales } = await makeService()
+    const input = {
+      clientRequestId: 'sale-request-concurrent',
+      lines: lines(),
+      paymentMethod: 'transfer' as const,
+      total: 5610,
+    }
+
+    const [first, second] = await Promise.all([
+      service.create('el-chunchito', input),
+      service.create('el-chunchito', input),
+    ])
+
+    expect(first.id).toBe(second.id)
+    expect(await sales.list('el-chunchito')).toHaveLength(1)
+    expect('delete' in sales).toBe(false)
+  })
+
 })
 
 function lines() {
