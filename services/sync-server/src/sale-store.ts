@@ -50,7 +50,7 @@ export class SaleStore {
     const data = await this.read(storeId)
     return data.sales
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, Math.max(1, Math.min(limit, 1000)))
+      .slice(0, Math.max(1, Math.min(limit, 20_000)))
   }
 
   async get(storeId: string, saleId: string): Promise<SaleRecord | null> {

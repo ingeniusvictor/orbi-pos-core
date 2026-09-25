@@ -16,6 +16,8 @@ import { RecoveryDrillStore } from './recovery-drill-store.js'
 import { SaleStore } from './sale-store.js'
 import { SaleService } from './sale-service.js'
 import { PaymentSaleReconciliationService } from './payment-sale-reconciliation.js'
+import { DailyCloseStore } from './daily-close-store.js'
+import { DailyCloseService } from './daily-close-service.js'
 
 const PORT = Number(process.env.PORT ?? 8787)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -31,6 +33,13 @@ const paymentService = new PaymentService(paymentStore, paymentRuntime)
 const saleStore = new SaleStore(DATA_DIR)
 const saleService = new SaleService(saleStore, paymentStore)
 const paymentSaleReconciliation = new PaymentSaleReconciliationService(paymentStore, saleStore)
+const dailyCloseStore = new DailyCloseStore(DATA_DIR)
+const dailyCloseService = new DailyCloseService(
+  dailyCloseStore,
+  saleStore,
+  paymentStore,
+  process.env.ORBI_BUSINESS_TIME_ZONE ?? 'America/Santiago',
+)
 const scaleFleetStore = new ScaleFleetStore(DATA_DIR)
 const evidenceAttachmentStore = new EvidenceAttachmentStore(DATA_DIR)
 const pilotBackupStore = new PilotBackupStore(DATA_DIR)
@@ -60,6 +69,8 @@ app.get('/api/health', (_req, res) => {
       recoveryDrills: true,
       serverSalesLedger: true,
       paymentSaleReconciliation: true,
+      dailyClose: true,
+      businessTimeZone: process.env.ORBI_BUSINESS_TIME_ZONE ?? 'America/Santiago',
     },
   })
 })
@@ -407,6 +418,52 @@ app.put('/api/stores/:storeId/scales/fleet', async (req, res) => {
     }))
   } catch (error) {
     return res.status(400).json({ code: 'SCALE_FLEET_SAVE_FAILED', message: (error as Error).message })
+  }
+})
+
+app.get('/api/stores/:storeId/daily-close/preview', async (req, res) => {
+  try {
+    const requestedDate = typeof req.query.date === 'string'
+      ? req.query.date
+      : undefined
+    return res.json(await dailyCloseService.preview(
+      req.params.storeId,
+      requestedDate,
+    ))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'DAILY_CLOSE_PREVIEW_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.get('/api/stores/:storeId/daily-close', async (req, res) => {
+  try {
+    const limit = Number(req.query.limit ?? 200)
+    return res.json(await dailyCloseService.list(req.params.storeId, limit))
+  } catch (error) {
+    return res.status(400).json({
+      code: 'DAILY_CLOSE_LIST_FAILED',
+      message: (error as Error).message,
+    })
+  }
+})
+
+app.post('/api/stores/:storeId/daily-close', async (req, res) => {
+  try {
+    const requestedDate = typeof req.body?.date === 'string'
+      ? req.body.date
+      : undefined
+    return res.status(201).json(await dailyCloseService.close(
+      req.params.storeId,
+      requestedDate,
+    ))
+  } catch (error) {
+    return res.status(409).json({
+      code: 'DAILY_CLOSE_CREATE_FAILED',
+      message: (error as Error).message,
+    })
   }
 })
 

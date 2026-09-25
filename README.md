@@ -133,7 +133,7 @@ In particular, `FaustinoDuran/carniceria-pos` is currently treated as an archite
 
 **Business:** Carnicería El Chunchito  
 **Product:** ORBI POS + ORBI Showcase  
-**Milestone:** OC-32 Payment-to-Sale Reconciliation & Orphan Recovery
+**Milestone:** OC-33 Daily Sales Close & Reconciliation Snapshot
 
 
 ## TV pilot on Windows
@@ -369,7 +369,7 @@ Open:
 http://HOST:8787/piloto/desastre
 ~~~
 
-OC-29 protects the allowlisted ORBI server state required to reconstruct the pilot after losing the mini-PC/server: catalog, Payment Core audit records, the server-authoritative sales ledger, RM-60 fleet state, product images, OC-27 evidence files and OC-28 pilot backups.
+OC-29 protects the allowlisted ORBI server state required to reconstruct the pilot after losing the mini-PC/server: catalog, Payment Core audit records, the server-authoritative sales ledger, immutable OC-33 daily closes, RM-60 fleet state, product images, OC-27 evidence files and OC-28 pilot backups.
 
 A manual full archive first creates a fresh OC-28 browser-state snapshot, then packages the server data into a portable `.orbi-dr.gz` archive. Every internal file has its own SHA-256, and the exact compressed archive has a second SHA-256.
 
@@ -390,7 +390,7 @@ http://HOST:8787/piloto/certificacion
 
 OC-30 tests an existing OC-29 archive without restoring it over the live server.
 
-The drill verifies the whole compressed archive, reconstructs every archived file into an isolated temporary ORBI data directory, re-hashes the staged files and reopens reconstructed catalog, Payment Core history, server-authoritative sales, RM-60 fleet state, product images, OC-27 evidence and OC-28 backups through their real store implementations where present.
+The drill verifies the whole compressed archive, reconstructs every archived file into an isolated temporary ORBI data directory, re-hashes the staged files and reopens reconstructed catalog, Payment Core history, server-authoritative sales, OC-33 daily closes, RM-60 fleet state, product images, OC-27 evidence and OC-28 backups through their real store implementations where present.
 
 The result distinguishes archive failure from ordinary live drift:
 
@@ -474,3 +474,45 @@ Recovery rules:
 
 OC-32 does not issue SII documents, write to RM-60 scales, or modify an existing
 completed sale.
+
+
+## Daily sales close & reconciliation snapshot
+
+The main navigation includes **Cierre**:
+
+~~~text
+http://HOST:8787/?view=close
+~~~
+
+OC-33 builds a provider-free daily operational snapshot from the
+server-authoritative sales ledger and local Payment Core history.
+
+The default business timezone is:
+
+~~~text
+America/Santiago
+~~~
+
+It can be overridden on the server with:
+
+~~~text
+ORBI_BUSINESS_TIME_ZONE=<IANA time zone>
+~~~
+
+For each business date ORBI reports sales count/total, cash/debit/credit/transfer
+breakdown, processed payments without a sale, refunded payments linked to a
+historical sale, and card-link inconsistencies.
+
+Creating a close writes an immutable revision to:
+
+~~~text
+stores/<storeId>/daily-closes.json
+~~~
+
+Retrying the same unchanged snapshot is idempotent. If the source sales/payment
+state later changes, ORBI appends a new revision and preserves the previous one.
+
+This is an **ORBI operational data close only**. It is not a physical cash-drawer
+count, bank reconciliation, proof of transfer receipt, or Chilean SII/tax close.
+
+OC-33 preview/close does not call Mercado Pago or any other payment provider.

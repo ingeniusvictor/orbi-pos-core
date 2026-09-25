@@ -112,6 +112,23 @@ When `sales.json` is present:
 
 The drill does not call a payment provider.
 
+### OC-33 daily closes
+
+When `daily-closes.json` is present:
+
+- parse the append-only close history;
+- verify store identity;
+- verify business-date and IANA timezone shape;
+- verify positive revision numbers with no duplicate revision for one date;
+- verify SHA-256 source fingerprint shape;
+- verify cash/debit/credit/transfer counts sum to the stored sale count;
+- verify method totals sum to the stored sales total;
+- verify reconciliation counters and close status;
+- reopen the reconstructed history through `DailyCloseStore`.
+
+The drill never recalculates a close against a live provider. It certifies the
+persisted OC-33 snapshot structure and totals inside the isolated sandbox.
+
 ### DIGI RM-60 fleet
 
 When `scale-fleet.json` is present:

@@ -10935,3 +10935,349 @@ body:has(.modernization-page.presentation) {
     display: initial;
   }
 }
+
+
+/* ── OC-33 daily operational close ───────────────────────────── */
+.daily-close-page {
+  padding: 22px;
+}
+
+.daily-close-heading {
+  align-items: flex-start;
+}
+
+.daily-close-heading > div:first-child p:not(.eyebrow) {
+  max-width: 760px;
+}
+
+.daily-close-date-control {
+  min-width: 330px;
+  display: grid;
+  gap: 6px;
+}
+
+.daily-close-date-control > label {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.daily-close-date-control > div {
+  display: flex;
+  gap: 8px;
+}
+
+.daily-close-date-control input {
+  min-height: 40px;
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.daily-close-error,
+.daily-close-notice {
+  margin: 12px 0;
+  padding: 11px 13px;
+  border-radius: 12px;
+  font-size: 10px;
+}
+
+.daily-close-error {
+  border: 1px solid #d9a89f;
+  background: #fff0ed;
+  color: #7b342b;
+}
+
+.daily-close-notice {
+  border: 1px solid #b5d0aa;
+  background: #eff8ec;
+  color: #3d6532;
+}
+
+.daily-close-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 15px;
+}
+
+.daily-close-status > div {
+  display: grid;
+  gap: 2px;
+}
+
+.daily-close-status small {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.daily-close-status strong {
+  font-size: 18px;
+}
+
+.daily-close-status > span {
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.daily-close-status.status-reconciled {
+  border: 1px solid #a9c99f;
+  background: #f0f8ed;
+  color: #3e6534;
+}
+
+.daily-close-status.status-attention_required {
+  border: 1px solid #dcaa9e;
+  background: #fff1ed;
+  color: #7b342a;
+}
+
+.daily-close-hero-stats,
+.daily-close-methods,
+.daily-close-reconciliation {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.daily-close-hero-stats,
+.daily-close-methods {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.daily-close-hero-stats article,
+.daily-close-methods article,
+.daily-close-reconciliation > div {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-height: 92px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.daily-close-hero-stats span,
+.daily-close-methods span,
+.daily-close-reconciliation span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.daily-close-hero-stats strong,
+.daily-close-methods strong {
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+.daily-close-hero-stats small,
+.daily-close-methods small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.daily-close-reconciliation {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.daily-close-reconciliation > div {
+  min-height: 72px;
+}
+
+.daily-close-reconciliation strong {
+  font-size: 20px;
+}
+
+.daily-close-warnings,
+.daily-close-ok,
+.daily-close-boundary,
+.daily-close-actions {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 14px;
+}
+
+.daily-close-warnings {
+  border: 1px solid #dfb09f;
+  background: #fff4ef;
+  color: #6f3b31;
+}
+
+.daily-close-warnings b,
+.daily-close-ok b,
+.daily-close-boundary b,
+.daily-close-actions b {
+  font-size: 10px;
+}
+
+.daily-close-warnings p {
+  margin: 5px 0 0;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.daily-close-ok {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #b6d1ac;
+  background: #f1f8ef;
+  color: #3d6433;
+}
+
+.daily-close-ok span {
+  font-size: 9px;
+}
+
+.daily-close-boundary {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+  border: 1px solid var(--line);
+  background: #faf7f5;
+}
+
+.daily-close-boundary p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.daily-close-boundary code,
+.daily-close-history-list code {
+  display: block;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+  font-size: 8px;
+}
+
+.daily-close-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid #d7cec9;
+  background: var(--surface);
+}
+
+.daily-close-actions > div {
+  display: grid;
+  gap: 4px;
+}
+
+.daily-close-actions span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.daily-close-history {
+  margin-top: 24px;
+}
+
+.daily-close-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.daily-close-history-list article {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1.2fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+}
+
+.daily-close-history-list article > div {
+  display: grid;
+  gap: 3px;
+}
+
+.daily-close-history-list article span,
+.daily-close-history-list article small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.daily-close-history-list article > small {
+  grid-column: 1 / -1;
+}
+
+.daily-close-chip {
+  width: max-content;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-weight: 850;
+}
+
+.daily-close-chip.chip-reconciled {
+  background: #edf7e9;
+  color: #315428;
+}
+
+.daily-close-chip.chip-attention_required {
+  background: #fff0ed;
+  color: #8b2f27;
+}
+
+.daily-close-history-empty {
+  padding: 22px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 10px;
+}
+
+@media (max-width: 950px) {
+  .daily-close-heading,
+  .daily-close-actions {
+    display: grid;
+  }
+
+  .daily-close-date-control {
+    min-width: 0;
+  }
+
+  .daily-close-hero-stats,
+  .daily-close-methods,
+  .daily-close-reconciliation {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .daily-close-boundary {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-close-history-list article {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-close-history-list article > small {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 620px) {
+  .daily-close-hero-stats,
+  .daily-close-methods,
+  .daily-close-reconciliation {
+    grid-template-columns: 1fr;
+  }
+}
