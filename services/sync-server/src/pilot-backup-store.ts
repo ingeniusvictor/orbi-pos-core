@@ -331,6 +331,39 @@ export class PilotBackupStore {
     return path.join(this.dir(storeId), backupId)
   }
 
+  private validateStoredRecord(
+    storeId: string,
+    fileName: string,
+    record: PilotBackupRecord,
+  ): PilotBackupRecord {
+    validateBackupId(fileName)
+    validatePilotBackupBundle(storeId, record.bundle)
+
+    if (record.id !== fileName) throw new Error('Pilot backup id metadata mismatch')
+    if (!validIso(record.savedAt)) throw new Error('Pilot backup savedAt is invalid')
+    if (
+      record.createdAt !== record.bundle.createdAt
+      || record.label !== record.bundle.label.trim()
+      || record.source !== record.bundle.source
+    ) {
+      throw new Error('Pilot backup metadata does not match bundle')
+    }
+
+    const serialized = JSON.stringify(record.bundle)
+    const expectedSize = Buffer.byteLength(serialized, 'utf8')
+    const expectedHash = createHash('sha256').update(serialized).digest('hex')
+    if (record.size !== expectedSize || record.sha256 !== expectedHash) {
+      throw new Error('Pilot backup integrity check failed')
+    }
+
+    const expectedModuleCount = Object.keys(record.bundle.modules).length
+    if (record.moduleCount !== expectedModuleCount) {
+      throw new Error('Pilot backup module-count metadata mismatch')
+    }
+
+    return record
+  }
+
   async put(storeId: string, input: unknown): Promise<PilotBackupRecord> {
     validatePilotBackupBundle(storeId, input)
     const bundle = input
@@ -366,7 +399,8 @@ export class PilotBackupStore {
     const file = this.filePath(storeId, backupId)
     try {
       const raw = await readFile(file, 'utf8')
-      return JSON.parse(raw) as PilotBackupRecord
+      const record = JSON.parse(raw) as PilotBackupRecord
+      return this.validateStoredRecord(storeId, backupId, record)
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
       throw error
@@ -388,7 +422,11 @@ export class PilotBackupStore {
       try {
         validateBackupId(name)
         const raw = await readFile(path.join(dir, name), 'utf8')
-        const parsed = JSON.parse(raw) as PilotBackupRecord
+        const parsed = this.validateStoredRecord(
+          storeId,
+          name,
+          JSON.parse(raw) as PilotBackupRecord,
+        )
         await stat(path.join(dir, name))
         records.push({
           id: parsed.id,
