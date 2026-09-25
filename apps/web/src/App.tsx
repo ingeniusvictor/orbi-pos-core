@@ -344,20 +344,31 @@ function OperationalApp() {
 
   useEffect(() => {
     let active = true
-    setSalesStatus('loading')
-    listServerSales()
-      .then((records) => {
+    let firstLoad = true
+
+    async function refreshSales() {
+      if (firstLoad) setSalesStatus('loading')
+      try {
+        const records = await listServerSales()
         if (!active) return
         setSales(records)
         setSalesStatus('ready')
-      })
-      .catch(() => {
+      } catch {
         if (!active) return
-        setSales([])
         setSalesStatus('offline')
-      })
+      } finally {
+        firstLoad = false
+      }
+    }
+
+    void refreshSales()
+    const timer = window.setInterval(() => {
+      void refreshSales()
+    }, 5000)
+
     return () => {
       active = false
+      window.clearInterval(timer)
     }
   }, [])
 
