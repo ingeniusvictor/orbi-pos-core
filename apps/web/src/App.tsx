@@ -17,6 +17,7 @@ import { OwnerPilotSummary } from './components/OwnerPilotSummary'
 import { ProductionDecisionGate } from './components/ProductionDecisionGate'
 import { ControlledMigrationRunbook } from './components/ControlledMigrationRunbook'
 import { EvidenceIncidentLedger } from './components/EvidenceIncidentLedger'
+import { EvidenceCaseBinder } from './components/EvidenceCaseBinder'
 import type { CartLine, PaymentMethod, PriceChange, Product, Sale, SalePayment, UnitType } from './domain'
 import { cartTotal, completeSale, formatCLP, lineSubtotal, makeCartLine, paymentLabel } from './pos'
 import { useCatalogSync } from './use-catalog-sync'
@@ -418,6 +419,10 @@ export function App() {
 
   if (path.endsWith('/piloto/evidencia')) {
     return <EvidenceIncidentLedger />
+  }
+
+  if (path.endsWith('/piloto/expedientes')) {
+    return <EvidenceCaseBinder />
   }
 
   if (path.endsWith('/piloto')) {
