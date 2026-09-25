@@ -62,15 +62,57 @@ export interface PilotBackupRecord extends PilotBackupMetadata {
   bundle: PilotBackupBundle
 }
 
-const FORBIDDEN_KEY = /(?:^|[_-])(password|passwd|secret|token|api[_-]?key|authorization|credential|cvv|cvc|card[_-]?(?:number|pan))(?:$|[_-])/i
 const OBVIOUS_SECRET_PATTERNS = [
   /\b(?:password|passwd|contrase(?:ñ|n)a)\s*[:=]\s*\S+/i,
   /\bapi[_ -]?key\s*[:=]\s*\S+/i,
   /\baccess[_ -]?token\s*[:=]\s*\S+/i,
   /\bclient[_ -]?secret\s*[:=]\s*\S+/i,
   /\bbearer\s+[A-Za-z0-9._~+\/-]{12,}/i,
-  /(?:^|\D)(?:\d[ -]?){13,19}(?:\D|$)/,
 ]
+
+function forbiddenSensitiveKey(key: string) {
+  const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return [
+    'password',
+    'passwd',
+    'secret',
+    'token',
+    'apikey',
+    'authorization',
+    'credential',
+    'cvv',
+    'cvc',
+    'cardnumber',
+    'cardpan',
+  ].some((part) => normalized.includes(part))
+}
+
+function passesLuhn(digits: string) {
+  let sum = 0
+  let doubleDigit = false
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    let value = Number(digits[index])
+    if (doubleDigit) {
+      value *= 2
+      if (value > 9) value -= 9
+    }
+    sum += value
+    doubleDigit = !doubleDigit
+  }
+  return sum % 10 === 0
+}
+
+function containsLikelyCardNumber(value: string, pathLabel: string) {
+  if (/(?:^|\.)(?:id|[A-Za-z]+At|fileName|sha256|version|format)$/i.test(pathLabel)) {
+    return false
+  }
+
+  const candidates = value.match(/\d(?:[ -]?\d){12,18}/g) ?? []
+  return candidates.some((candidate) => {
+    const digits = candidate.replace(/\D/g, '')
+    return digits.length >= 13 && digits.length <= 19 && passesLuhn(digits)
+  })
+}
 
 function validateStoreId(storeId: string) {
   if (!/^[a-z0-9][a-z0-9-]{1,63}$/.test(storeId)) {
@@ -98,7 +140,10 @@ function scanModuleValue(
   if (depth > 20) throw new Error('Pilot backup module nesting is too deep')
 
   if (typeof value === 'string') {
-    if (OBVIOUS_SECRET_PATTERNS.some((pattern) => pattern.test(value))) {
+    if (
+      OBVIOUS_SECRET_PATTERNS.some((pattern) => pattern.test(value))
+      || containsLikelyCardNumber(value, pathLabel)
+    ) {
       throw new Error(`Potential sensitive data detected in ${pathLabel}`)
     }
     return
@@ -123,7 +168,7 @@ function scanModuleValue(
     const entries = Object.entries(value as Record<string, unknown>)
     if (entries.length > 10_000) throw new Error('Pilot backup object is too large')
     for (const [key, child] of entries) {
-      if (FORBIDDEN_KEY.test(key)) {
+      if (forbiddenSensitiveKey(key)) {
         throw new Error(`Forbidden sensitive field in pilot backup: ${pathLabel}.${key}`)
       }
       scanModuleValue(child, `${pathLabel}.${key}`, depth + 1)
