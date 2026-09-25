@@ -18,7 +18,6 @@ import {
 } from './migration-runbook'
 import {
   emptyEvidenceLedger,
-  findPotentialSensitivePatterns,
   sanitizeEvidenceLedger,
   type EvidenceLedgerState,
 } from './evidence-ledger'
@@ -116,7 +115,56 @@ const siiState = ['pending', 'found', 'missing', 'mixed', 'not_checked'] as cons
 const fiscalScope = ['pending', 'individual_boletas', 'daily_summary', 'both', 'unknown'] as const
 const sunmiArrangement = ['pending', 'purchased', 'rented', 'bundled', 'unknown'] as const
 
-const forbiddenKey = /(?:^|[_-])(password|passwd|secret|token|api[_-]?key|authorization|credential|cvv|cvc|card[_-]?(?:number|pan))(?:$|[_-])/i
+const obviousSecretPatterns = [
+  /\b(?:password|passwd|contrase(?:ñ|n)a)\s*[:=]\s*\S+/i,
+  /\bapi[_ -]?key\s*[:=]\s*\S+/i,
+  /\baccess[_ -]?token\s*[:=]\s*\S+/i,
+  /\bclient[_ -]?secret\s*[:=]\s*\S+/i,
+  /\bbearer\s+[A-Za-z0-9._~+\/-]{12,}/i,
+]
+
+function forbiddenSensitiveKey(key: string) {
+  const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return [
+    'password',
+    'passwd',
+    'secret',
+    'token',
+    'apikey',
+    'authorization',
+    'credential',
+    'cvv',
+    'cvc',
+    'cardnumber',
+    'cardpan',
+  ].some((part) => normalized.includes(part))
+}
+
+function passesLuhn(digits: string) {
+  let sum = 0
+  let doubleDigit = false
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    let value = Number(digits[index])
+    if (doubleDigit) {
+      value *= 2
+      if (value > 9) value -= 9
+    }
+    sum += value
+    doubleDigit = !doubleDigit
+  }
+  return sum % 10 === 0
+}
+
+function containsLikelyCardNumber(value: string, path: string) {
+  if (/(?:^|\.)(?:id|[A-Za-z]+At|fileName|sha256|version|format)$/i.test(path)) {
+    return false
+  }
+  const candidates = value.match(/\d(?:[ -]?\d){12,18}/g) ?? []
+  return candidates.some((candidate) => {
+    const digits = candidate.replace(/\D/g, '')
+    return digits.length >= 13 && digits.length <= 19 && passesLuhn(digits)
+  })
+}
 
 function objectValue(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -255,9 +303,11 @@ function scanBackupModule(value: unknown, path = 'module', depth = 0): void {
   if (depth > 20) throw new Error('El respaldo tiene una profundidad inválida')
 
   if (typeof value === 'string') {
-    const matches = findPotentialSensitivePatterns(value)
-    if (matches.length) {
-      throw new Error(`Posible dato sensible en ${path}: ${matches.join(', ')}`)
+    if (
+      obviousSecretPatterns.some((pattern) => pattern.test(value))
+      || containsLikelyCardNumber(value, path)
+    ) {
+      throw new Error(`Posible dato sensible en ${path}`)
     }
     return
   }
@@ -279,7 +329,7 @@ function scanBackupModule(value: unknown, path = 'module', depth = 0): void {
 
   if (typeof value === 'object') {
     for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-      if (forbiddenKey.test(key)) {
+      if (forbiddenSensitiveKey(key)) {
         throw new Error(`Campo sensible no permitido en respaldo: ${path}.${key}`)
       }
       scanBackupModule(child, `${path}.${key}`, depth + 1)
